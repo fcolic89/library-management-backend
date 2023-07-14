@@ -1,0 +1,25 @@
+{
+  "name": "library-managment-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/fcolic89/library-managment-backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fcolic89/library-managment-backend/issues"
+  },
+  "homepage": "https://github.com/fcolic89/library-managment-backend#readme",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongodb": "^5.7.0",
+    "mongoose": "^7.3.4"
+  }
+}
