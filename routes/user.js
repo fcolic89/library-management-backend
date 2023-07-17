@@ -2,6 +2,7 @@ const Joi = require('joi');
 const express = require('express');
 const router = express.Router();
 const userService = require('../service/user');
+const auth = require('../middleware/auth');
 
 const userSchema = Joi.object({
     username: Joi.string().min(3).required(),
@@ -9,10 +10,10 @@ const userSchema = Joi.object({
     email: Joi.string().required(),
     firstname: Joi.string().required(),
     lastname: Joi.string().required(),
-    isAdmin: Joi.boolean()
+    role: Joi.string()
 });
 
-router.post('/', (req, res) => {
+router.post('/register', (req, res) => {
     const result = userSchema.validate(req.body);
     if(result.error){
         return res.status(400).send(result.error);
@@ -20,7 +21,7 @@ router.post('/', (req, res) => {
     userService.save(req, res);
 });
 
-router.get('/test', (req, res) => {
+router.get('/test', [auth.authentication, auth.authorization(['ADMIN','REGULAR'])],(req, res) => {
     res.send('Testing user route!');
 });
 

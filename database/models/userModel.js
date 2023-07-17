@@ -7,7 +7,7 @@ const userSchema = new Schema({
     email: {type: String, required: true, unique: true},
     firstname: {type: String, required: true},
     lastname: {type: String, required: true},
-    isAdmin: Boolean,
+    role: {type: String, enum: ['ADMIN', 'LIBRARIAN', 'REGULAR'], default: 'REGULAR'},
     isDeleted: {type: Boolean, required: true}
 });
 

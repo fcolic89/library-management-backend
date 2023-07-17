@@ -13,5 +13,6 @@ db.users.insert({
     email: "admin@email.com",
     firstname: "Minad",
     lastname: "Adminovic",
-    isAdmin: true
+    role: 'ADMIN',
+    isDeleted: false
 })
