@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const privateKey = process.env.PRIVATE_KEY || 'supersecretandsuperprivatekey';
 
 function authentication(req, res, next){

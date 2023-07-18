@@ -1,10 +1,12 @@
 const User = require('../database/models/userModel');
+const bcrypt = require('bcrypt');
 
 async function save(req, res) {
     try{
+        let enpass = await bcrypt.hash(req.body.password, 10);
         const user = new User({
             username: req.body.username,
-            password: req.body.password,
+            password: enpass,
             email: req.body.email,
             firstname: req.body.firstname,
             lastname: req.body.lastname,
