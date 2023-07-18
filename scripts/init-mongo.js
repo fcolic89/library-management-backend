@@ -9,7 +9,7 @@ db.createUser(
 
 db.users.insert({
     username: "Admin",
-    password: "admin",
+    password: "$2b$10$kgfanuzauAUAhhCYL1wOe.q/1uA9G/9Yls1p/V8gE3wNKRIKi1ysm",
     email: "admin@email.com",
     firstname: "Minad",
     lastname: "Adminovic",
