@@ -8,7 +8,9 @@ const userSchema = new Schema({
     firstname: {type: String, required: true},
     lastname: {type: String, required: true},
     role: {type: String, enum: ['ADMIN', 'LIBRARIAN', 'REGULAR'], default: 'REGULAR'},
-    isDeleted: {type: Boolean, required: true}
+    isDeleted: {type: Boolean, required: true},
+    canComment: {type: Boolean, default: true},
+    takeBook: {type: Boolean, default: true}
 });
 
 const User = model('User', userSchema);

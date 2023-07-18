@@ -29,6 +29,14 @@ router.post('/register', (req, res) => {
     userService.saveUser(req, res);
 });
 
+router.post('/add', [auth.authentication, auth.authorization(['ADMIN'])], (req, res) => {
+    const result = registerSchema.validate(req.body);
+    if(result.error){
+        return res.status(400).send(result.error);
+    }
+    userService.saveUser(req, res);
+});
+
 router.delete('/:id', [auth.authentication, auth.authorization(['ADMIN'])], (req, res) => {
     userService.deleteUser(req, res);
 });
@@ -41,8 +49,8 @@ router.put('/', [auth.authentication, auth.authorization(['ADMIN', 'LIBRARIAN', 
     userService.updateUser(req, res);
 });
 
-router.get('/:id', [auth.authentication, auth.authorization(['ADMIN', 'LIBRARIAN', 'REGULAR'])], (req, res) => {
-    userService.findUserById(req, res);
+router.get('/profile', [auth.authentication, auth.authorization(['ADMIN', 'LIBRARIAN', 'REGULAR'])], (req, res) => {
+    userService.getUserInformation(req, res);
 });
 
 router.get('/test', [auth.authentication, auth.authorization(['ADMIN','REGULAR'])],(req, res) => {

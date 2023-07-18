@@ -13,6 +13,10 @@ async function saveUser(req, res) {
             isAdmin: req.body.isAdmin || false,
             isDeleted: false
         });
+        if(req.role && req.role !== 'REGULAR'){
+            user.canComment = false;
+            user.takeBook = false;
+        }
         await user.save();
         res.send("New user saved!");
     }catch(err){
@@ -78,9 +82,30 @@ async function findUserById(req, res){
     }
 }
 
+async function getUserInformation(req, res){
+    try{
+        let user = await User.findOne({ _id: req.user.id});
+        if(!user || user.isDeleted === true){
+            res.status(404).send(`User with id: ${req.user.id} not found!`);
+        }else{
+            res.send({
+                id: user._id,
+                firstname: user.firstname,
+                lastname: user.lastname,
+                username: user.username,
+                email: user.email
+            });
+        }
+
+    }catch(err){
+        res.status(500).send(`An error occured while getting user with id: ${req.user.id}`)
+    }
+}
+
 module.exports = {
     saveUser,
     deleteUser,
     updateUser,
-    findUserById
+    findUserById,
+    getUserInformation
 }

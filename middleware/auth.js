@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const User = require('../database/models/userModel');
 const privateKey = process.env.PRIVATE_KEY || 'supersecretandsuperprivatekey';
 
 function authentication(req, res, next){
@@ -25,7 +26,19 @@ function authorization(roles){
         next();
     }
 }
+
+function authorization2(roles){
+    return async (req, res, next) => {
+        let user = await User.findOne({ _id: req.user.id });
+
+        if(!user || user.isDeleted === true ) return res.status(401).send('Access denied. User does not exist!');
+        if(!roles.includes(user.role)) return res.status(401).send('Access denied. User does not have permission for this resource!');
+        
+        next();
+    }
+}
 module.exports = {
     authentication,
-    authorization
+    authorization,
+    authorization2
 }
