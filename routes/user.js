@@ -49,6 +49,10 @@ router.put('/', [auth.authentication, auth.authorization2(['ADMIN', 'LIBRARIAN',
     userService.updateUser(req, res);
 });
 
+router.post('/find', [auth.authentication, auth.authorization2(['ADMIN'])], (req, res) => {
+    userService.findUser(req, res);
+});
+
 router.post('/pwd-change', [auth.authentication, auth.authorization2(['ADMIN', 'LIBRARIAN', 'REGULAR'])], (req, res) => {
     userService.changePassword(req, res);
 });

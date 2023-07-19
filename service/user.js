@@ -82,6 +82,34 @@ async function findUserById(req, res){
     }
 }
 
+async function findUser(req, res){
+    try{
+        if(!req.body.roles) req.body.roles = ['ADMIN', 'LIBRARIAN', 'REGULAR'];
+
+        let userList = await User.find({
+            username: new RegExp(req.body.username, 'i'),
+            email: new RegExp(req.body.email, 'i'),
+            firstname: new RegExp(req.body.firstname, 'i'),
+            lastname: new RegExp(req.body.lastname, 'i'),
+            role: {$in: req.body.roles} 
+        });
+
+        let filteredList = [];
+        userList.forEach(user => {
+            let add = true;
+            if(req.body.isDeleted !== undefined && user.isDeleted !== req.body.isDeleted) add = false;
+            if(req.body.canComment !== undefined && user.canComment !== req.body.canComment) add = false;
+            if(req.body.takeBook !== undefined && user.takeBook !== req.body.takeBook) add = false;
+
+            if(add) filteredList.push(user);
+        })
+
+        res.send(filteredList);
+    }catch(err){
+        res.status(500).send('An error occurred while getting users! Error: ' + err);
+    }
+}
+
 async function getUserInformation(req, res){
     try{
         let user = await User.findOne({ _id: req.user.id});
@@ -121,5 +149,6 @@ module.exports = {
     updateUser,
     findUserById,
     getUserInformation,
-    changePassword
+    changePassword,
+    findUser
 }

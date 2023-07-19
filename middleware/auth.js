@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
 const User = require('../database/models/userModel');
 const privateKey = process.env.PRIVATE_KEY || 'supersecretandsuperprivatekey';
 
@@ -20,12 +19,12 @@ function authentication(req, res, next){
     }
 }
 
-function authorization(roles){
-    return async (req, res, next) => {
-        if(!roles.includes(req.user.role)) return res.status(401).send('Access denied. User does not have permission for this resource!');
-        next();
-    }
-}
+// function authorization(roles){
+//     return async (req, res, next) => {
+//         if(!roles.includes(req.user.role)) return res.status(401).send('Access denied. User does not have permission for this resource!');
+//         next();
+//     }
+// }
 
 function authorization2(roles){
     return async (req, res, next) => {
@@ -39,6 +38,6 @@ function authorization2(roles){
 }
 module.exports = {
     authentication,
-    authorization,
+    // authorization,
     authorization2
 }
