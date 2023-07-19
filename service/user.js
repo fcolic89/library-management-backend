@@ -58,7 +58,7 @@ async function updateUser(req, res){
             email: user.email
         })
     }catch(err){
-        res.status(500).send('An error occured while updating user information!');
+        res.status(500).send('An error occurred while updating user information!');
     }
 }
 
@@ -78,7 +78,7 @@ async function findUserById(req, res){
         }
 
     }catch(err){
-        res.status(500).send(`An error occured while getting user with id: ${req.params.id}`)
+        res.status(500).send(`An error occurred while getting user with id: ${req.params.id}`)
     }
 }
 
@@ -98,7 +98,20 @@ async function getUserInformation(req, res){
         }
 
     }catch(err){
-        res.status(500).send(`An error occured while getting user with id: ${req.user.id}`)
+        res.status(500).send(`An error occurred while getting user with id: ${req.user.id}`)
+    }
+}
+
+async function changePassword(req, res){
+    try{
+        const user = await User.findOne({ _id: req.user.id });
+        if(!user || user.isDeleted) return res.status(404).send('User not found!');
+        let pass = await bcrypt.hash(req.body.password, 10);
+        user.password = pass;
+        user.save();
+        res.send('Password changed successfully');
+    }catch(err){
+        res.status(500).send('An error occurred while changing password');
     }
 }
 
@@ -107,5 +120,6 @@ module.exports = {
     deleteUser,
     updateUser,
     findUserById,
-    getUserInformation
+    getUserInformation,
+    changePassword
 }
