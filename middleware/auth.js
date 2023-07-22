@@ -30,7 +30,7 @@ function authorization2(roles){
     return async (req, res, next) => {
         let user = await User.findOne({ _id: req.user.id });
 
-        if(!user || user.isDeleted === true ) return res.status(401).send('Access denied. User does not exist!');
+        if(!user) return res.status(401).send('Access denied. User does not exist!');
         if(!roles.includes(user.role)) return res.status(401).send('Access denied. User does not have permission for this resource!');
         
         next();
@@ -39,5 +39,8 @@ function authorization2(roles){
 module.exports = {
     authentication,
     // authorization,
-    authorization2
+    authorization2,
+    admin: 'ADMIN',
+    librarian: 'LIBRARIAN',
+    regular: 'REGULAR'
 }

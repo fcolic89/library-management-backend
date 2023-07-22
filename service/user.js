@@ -10,10 +10,10 @@ async function saveUser(req, res) {
             email: req.body.email,
             firstname: req.body.firstname,
             lastname: req.body.lastname,
-            isAdmin: req.body.isAdmin || false,
             isDeleted: false
         });
-        if(req.role && req.role !== 'REGULAR'){
+        if(req.body.role && req.body.role !== 'REGULAR'){
+            user.role = req.body.role;
             user.canComment = false;
             user.takeBook = false;
         }
@@ -26,12 +26,11 @@ async function saveUser(req, res) {
 
 async function deleteUser(req, res){
     try{
-        const user = await User.findOne({ _id: req.params.id});
-        user.isDeleted = true;
-        user.save();
-        res.send('User deleted!');
+        const deleted = await User.deleteOne({ _id: req.params.id});
+        if(deleted) res.send('User deleted!');
+        else throw new Error(`Could not find user with id: ${req.params.id}`);
     }catch(err){
-        res.status(404).send('Could not find user with id: ' + req.params.id);
+        res.status(404).send('Error while trying to delete user: ' + err.message);
     }
 }
 

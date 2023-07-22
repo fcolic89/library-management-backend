@@ -29,7 +29,7 @@ router.post('/register', (req, res) => {
     userService.saveUser(req, res);
 });
 
-router.post('/add', [auth.authentication, auth.authorization2(['ADMIN'])], (req, res) => {
+router.post('/add', [auth.authentication, auth.authorization2([auth.admin])], (req, res) => {
     const result = registerSchema.validate(req.body);
     if(result.error){
         return res.status(400).send(result.error);
@@ -37,11 +37,11 @@ router.post('/add', [auth.authentication, auth.authorization2(['ADMIN'])], (req,
     userService.saveUser(req, res);
 });
 
-router.delete('/:id', [auth.authentication, auth.authorization2(['ADMIN'])], (req, res) => {
+router.delete('/:id', [auth.authentication, auth.authorization2([auth.admin])], (req, res) => {
     userService.deleteUser(req, res);
 });
 
-router.put('/', [auth.authentication, auth.authorization2(['ADMIN', 'LIBRARIAN', 'REGULAR'])], (req, res) => {
+router.put('/', [auth.authentication, auth.authorization2([auth.admin, auth.librarian, auth.regular])], (req, res) => {
     const result = updateSchema.validate(req.body);
     if(result.error){
         return res.status(400).send('Missing information!');
@@ -49,19 +49,19 @@ router.put('/', [auth.authentication, auth.authorization2(['ADMIN', 'LIBRARIAN',
     userService.updateUser(req, res);
 });
 
-router.post('/find', [auth.authentication, auth.authorization2(['ADMIN'])], (req, res) => {
+router.post('/find', [auth.authentication, auth.authorization2([auth.admin])], (req, res) => {
     userService.findUser(req, res);
 });
 
-router.post('/pwd-change', [auth.authentication, auth.authorization2(['ADMIN', 'LIBRARIAN', 'REGULAR'])], (req, res) => {
+router.post('/pwd-change', [auth.authentication, auth.authorization2([auth.admin, auth.librarian, auth.regular])], (req, res) => {
     userService.changePassword(req, res);
 });
 
-router.get('/profile', [auth.authentication, auth.authorization2(['ADMIN', 'LIBRARIAN', 'REGULAR'])], (req, res) => {
+router.get('/profile', [auth.authentication, auth.authorization2([auth.admin, auth.librarian, auth.regular])], (req, res) => {
     userService.getUserInformation(req, res);
 });
 
-router.get('/test', [auth.authentication, auth.authorization2(['ADMIN','REGULAR'])],(req, res) => {
+router.get('/test', [auth.authentication, auth.authorization2([auth.admin, auth.regular])],(req, res) => {
     res.send('Testing user route!');
 });
 
