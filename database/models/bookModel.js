@@ -7,9 +7,10 @@ const bookSchema = new Schema({
     dateOfPublishing: {type: Date, required: true},
     rating: {type: Number, default: 0},
     pageCount: {type: Number, required: true},
-    quantity: {type: Number, require: true},
+    quantityMax: {type: Number, required: true},
+    quantityCurrent: {type: Number, required: true},
     imageUrl: {type: String},
-    description: {type: String, require: true},
+    description: {type: String, required: true},
     genre: [{type: String, enum: ['Fiction', 'Historical Fiction', 'Romance', 'Adult', 'Classics', 'Historical', 'Comedy']}]
 });
 

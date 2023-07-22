@@ -30,7 +30,7 @@ async function deleteUser(req, res){
         if(deleted) res.send('User deleted!');
         else throw new Error(`Could not find user with id: ${req.params.id}`);
     }catch(err){
-        res.status(404).send('Error while trying to delete user: ' + err.message);
+        res.status(500).send('Error while trying to delete user: ' + err.message);
     }
 }
 
