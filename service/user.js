@@ -64,7 +64,7 @@ async function updateUser(req, res){
 async function findUserById(req, res){
     try{
         let user = await User.findOne({ _id: req.params.id});
-        if(!user || user.isDeleted === true){
+        if(!user){
             res.status(404).send(`User with id: ${req.params.id} not found!`);
         }else{
             res.send({
@@ -96,12 +96,11 @@ async function findUser(req, res){
         let filteredList = [];
         userList.forEach(user => {
             let add = true;
-            if(req.body.isDeleted !== undefined && user.isDeleted !== req.body.isDeleted) add = false;
             if(req.body.canComment !== undefined && user.canComment !== req.body.canComment) add = false;
             if(req.body.takeBook !== undefined && user.takeBook !== req.body.takeBook) add = false;
 
             if(add) filteredList.push(user);
-        })
+        });
 
         res.send(filteredList);
     }catch(err){
@@ -112,7 +111,7 @@ async function findUser(req, res){
 async function getUserInformation(req, res){
     try{
         let user = await User.findOne({ _id: req.user.id});
-        if(!user || user.isDeleted === true){
+        if(!user){
             res.status(404).send(`User with id: ${req.user.id} not found!`);
         }else{
             res.send({
@@ -132,7 +131,7 @@ async function getUserInformation(req, res){
 async function changePassword(req, res){
     try{
         const user = await User.findOne({ _id: req.user.id });
-        if(!user || user.isDeleted) return res.status(404).send('User not found!');
+        if(!user) return res.status(404).send('User not found!');
         let pass = await bcrypt.hash(req.body.password, 10);
         user.password = pass;
         user.save();
