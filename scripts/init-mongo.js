@@ -24,3 +24,12 @@ db.users.insert({
     lastname: "Raryan",
     role: "LIBRARIAN"
 });
+
+db.users.insert({
+    username: "regualrUser",
+    password: "$2b$10$kgfanuzauAUAhhCYL1wOe.q/1uA9G/9Yls1p/V8gE3wNKRIKi1ysm",
+    email: "reg@email.com",
+    firstname: "Reginald",
+    lastname: "Userland",
+    role: "REGULAR"
+});

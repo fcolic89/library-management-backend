@@ -27,6 +27,11 @@ const updateSchema = Joi.object({
     imgUrl: Joi.string()
 });
 
+const commentSchema = Joi.object({
+    comment: Joi.string().required(),
+    parentCommentId: Joi.string(),
+});
+
 router.post('/', [auth.authentication, auth.authorization2([auth.librarian])],(req, res) => {
     const result = bookSchema.validate(req.body);
     if(result.error){
@@ -53,6 +58,24 @@ router.put('/', [auth.authentication, auth.authorization2([auth.librarian])],(re
         return res.status(400).send(result.error);
     }
     bookService.updateBook(req, res);
+});
+
+router.post('/comment/:bookId', [auth.authentication, auth.authorization2([auth.regular])], (req, res) => {
+    const {error} = commentSchema.validate(req.body);
+    if(error) return res.status(400).send(error);
+
+    bookService.addComment(req, res);
+});
+
+router.put('/comment/:commentId', [auth.authentication, auth.authorization2([auth.regular])], (req, res) => {
+    const {error} = commentSchema.validate(req.body);
+    if(error) return res.status(400).send(error);
+
+    bookService.editComment(req, res);
+});
+
+router.get('/comment/:bookId', [auth.authentication, auth.authorization2([auth.regular])], (req, res) => {
+    bookService.findComments(req, res);
 });
 
 module.exports = router;

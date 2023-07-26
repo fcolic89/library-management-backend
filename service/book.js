@@ -25,7 +25,7 @@ async function deleteBook(req, res){
     try{
         const book = await Book.findOne({ _id: req.params.id});
         if(!book) return res.status(404).send(`An error occurred while deleting book! Book with id: ${req.params.id} does not exist.`);
-        if(book.quantityMax === book.quantityCurrent) book.deleteOne();
+        if(book.quantityMax === book.quantityCurrent) await book.deleteOne();
         else return res.status(500).send('Cannot deleted book! Copies of the book have been checked out.');
         res.send('Book deleted!');
     }catch(err){
@@ -46,7 +46,7 @@ async function updateBook(req, res){
         book.quantityMax = req.body.quantity;
         book.imageUrl = req.body.imageUrl;
 
-        book.save();
+        await book.save();
         res.send('Book updated!');
     }catch(err){
         res.status(500).send('An error occurred while updating book! Error: ' + err.message);
@@ -88,11 +88,22 @@ async function filterBooks(req, res){
 
 async function addComment(req, res){
     try{
+        const book = await Book.find({ _id: req.params.bookId})
+        if(!book) return res.status(404).send(`An error occurred while saving your commnet! Error: Book with id: ${req.body.bookId} does not exist`);
+
         const comment = new Comment({
+            bookId: req.params.bookId,             
             author: req.user.username,
             comment: req.body.comment,
+            parentCommentId: req.body.parentCommentId
         });
-        if(req.body.parentComment) comment.parentComment = req.body.parentCommnet;
+        if(req.body.parentCommentId){
+            const parent = await Comment.findOne({ _id: req.body.parentCommentId });
+            if(!parent) return res.status(404).send(`An error occurred while saving your commnet! Error: Comment with id: ${req.body.parentCommentId} does not exist`);
+
+            parent.replies = true;
+            await parent.save();
+        }
 
         await comment.save();
         res.send('Commnet saved!');
@@ -101,10 +112,41 @@ async function addComment(req, res){
     } 
 }
 
+async function editComment(req, res){
+    try{
+        const com = await Comment.findOne({ _id : req.params.commentId });
+        if(!com) return res.status(404).send('Cant edit comment! Comment does not exist.');
+
+        com.comment = req.body.comment;
+        await com.save();
+        res.send('Commend edited!');
+    } catch(err){
+        res.status(500).send('An error occurred while editing comment! Error: ' + err.message);
+    }
+}
+
+async function findComments(req, res){
+    try{
+        let commentList = [];
+        if(req.query.replies){
+            commentList = await Comment.find({ bookId: req.params.bookId, parentCommentId: req.query.replies})
+        }else{
+            commentList = await Comment.find({ bookId: req.params.bookId, parentCommentId: null });
+        }
+
+        res.send(commentList);
+    }catch(err){
+        res.status(500).send('An error occurred while getting comments! Error: ' + err.message);
+    }
+}
+
 module.exports = {
     saveBook,
     deleteBook,
     updateBook,
     findBookById,
-    filterBooks
+    filterBooks,
+    addComment,
+    editComment,
+    findComments
 };
