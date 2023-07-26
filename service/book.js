@@ -1,4 +1,5 @@
 const Book = require('../database/models/bookModel');
+const Comment = require('../database/models/commentModel');
 
 async function saveBook(req, res) {
     try{
@@ -83,6 +84,21 @@ async function filterBooks(req, res){
     }catch(err){
         res.status(500).send('An error occurred while find book! Error: ' + err.message);
     }
+}
+
+async function addComment(req, res){
+    try{
+        const comment = new Comment({
+            author: req.user.username,
+            comment: req.body.comment,
+        });
+        if(req.body.parentComment) comment.parentComment = req.body.parentCommnet;
+
+        await comment.save();
+        res.send('Commnet saved!');
+    }catch(err){
+        res.status(500).send('An error occurred while saving your commnet! Error: ' + err.message);
+    } 
 }
 
 module.exports = {

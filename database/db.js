@@ -5,3 +5,7 @@ const uri = process.env.MONGODB_URI || 'mongodb://admin:admin@localhost:27017/li
 mongoose.connect(uri)
     .then(() => console.log('Connected to MongoDB...'))
     .catch(err => console.error('Could not connect to MongoDB, ' + err));
+
+process.on('exit', function(){
+    mongoose.disconnect();
+});
