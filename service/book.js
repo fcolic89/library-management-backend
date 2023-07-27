@@ -1,5 +1,7 @@
 const Book = require('../database/models/bookModel');
 const Comment = require('../database/models/commentModel');
+const Checkout = require('../database/models/checkOutModel');
+const { checkout } = require('../routes/user');
 
 async function saveBook(req, res) {
     try{
@@ -140,6 +142,51 @@ async function findComments(req, res){
     }
 }
 
+async function checkoutBook(req, res){
+    try{
+        const book = await Book.findOne({ _id: req.body.bookId });
+        if(!book){ 
+            return res.status(404).send(`Book with id ${req.body.bookId} not found!`);
+        }else if(book.quantityCurrent === 0){ 
+            return res.status(403).send('No more copies available!');
+        }
+
+        const fined = await Checkout.findOne({ user: req.user.id, fine: {$gt: 0}, returned: null });
+        if(fined) return res.status(403).send('Cannot chekout a book while an overdue book is not retured!');
+
+        const checkout = new Checkout({
+            userId: req.user.id,
+            bookId: req.body.bookId
+        });
+
+        book.quantityCurrent = book.quantityCurrent - 1;
+        book.save();
+
+        await checkout.save();
+        res.send('Book checked out!');
+    }catch(err){
+        res.status(500).send('An error occurred while checking out a book! Error: ' + err.message);
+    }
+}
+
+async function returnBook(req, res){
+    try{
+        const checkout = await Checkout.findOne({ userId: req.body.userId, bookId: req.body.bookId });
+        if(!checkoutBook) return res.status(400).send('Checkout does not exist!');
+
+        const book = await Book.findOne({ _id: checkout.bookId });
+        book.quantityCurrent = book.quantityCurrent + 1;
+        book.save();
+
+        checkout.returned = Date.now();
+        checkout.save();
+
+        res.send('Book returned!');
+    }catch(err){
+        res.status(500).send('An error occurred while returning a book! Error: ' + err.message);
+    }
+}
+
 module.exports = {
     saveBook,
     deleteBook,
@@ -148,5 +195,7 @@ module.exports = {
     filterBooks,
     addComment,
     editComment,
-    findComments
+    findComments,
+    checkoutBook,
+    returnBook
 };

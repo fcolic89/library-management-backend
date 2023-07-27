@@ -1,3 +1,4 @@
+require('./service/cronjobs');
 require('./database/db');
 const route_user = require('./routes/user');
 const route_auth = require('./routes/auth');
