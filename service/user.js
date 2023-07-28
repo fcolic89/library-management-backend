@@ -1,4 +1,7 @@
 const User = require('../database/models/userModel');
+const Checkout = require('../database/models/checkOutModel');
+const Comment = require('../database/models/commentModel');
+const dbConnection = require('../database/db');
 const bcrypt = require('bcrypt');
 
 async function saveUser(req, res) {
@@ -25,30 +28,73 @@ async function saveUser(req, res) {
 }
 
 async function deleteUser(req, res){
+    const session = await dbConnection.startSession();
     try{
-        const deleted = await User.deleteOne({ _id: req.params.id});
-        if(deleted) res.send('User deleted!');
-        else throw new Error(`Could not find user with id: ${req.params.id}`);
+        const user = await User.findOne({ _id: req.params.id });
+        if(!user) return res.status(400).send('Cannot delete user! User does not exist!.');
+
+        const checkouts = await Checkout.findOne({ userId: req.params.id, returned: null });
+        if(checkouts && checkouts.length !== 0) return res.status(400).send('Cannot delete user! User still has unreturned books.');
+
+        session.startTransaction();
+
+        const deleteUser = await User.deleteOne({ _id: req.params.id}, {session});
+        if(!deleteUser) throw new Error(`Could not find user with id: ${req.params.id}`);
+
+        const deleteCheckouts = await Checkout.deleteMany({ userId: req.params.id }, {session});
+        if(!deleteCheckouts) throw new Error(`Could not find checkouts with user id: ${req.params.id}`);
+
+        const comments = Comment.find({ username: user.username });
+        comments.forEach(c => async function(){
+            c.author = '[deleted]';
+            await c.save({session});
+        });
+
+        await session.commitTransaction();
+        res.send('User deleted!');
     }catch(err){
+        await session.abortTransaction();
         res.status(500).send('Error while trying to delete user: ' + err.message);
+    }finally{
+        session.endSession();
     }
 }
 
 async function updateUser(req, res){
+    const session = await dbConnection.startSession();
     try{
         const user = await User.findOne({_id: req.body.id});
+        var usernameChange = req.body.username !== user.username;
+
         user.firstname = req.body.firstname;
         user.lastname = req.body.lastname;
         user.email = req.body.email;
         user.username = req.body.username;
         
-        if((await User.findOne({email: req.body.email}))){
-            return res.status(400).send(`User with email: ${req.body.email} already exists!`);
+        if(req.body.email !== user.email){
+            let tmpUser = await User.findOne({email: req.body.email});
+            if(tmpUser && user._id !== tmpUser._id){
+                return res.status(400).send(`User with email: ${req.body.email} already exists!`);
+            }
         }
-        if((await User.findOne({username: req.body.username}))){
-            return res.status(400).send(`User with username: ${req.body.username} already exists!`);
+
+        if(usernameChange){
+            tmpUser = await User.findOne({username: req.body.username});
+            if(tmpUser && user._id !== tmpUser._id){
+                return res.status(400).send(`User with username: ${req.body.username} already exists!`);
+            }
+            session.startTransaction();
+
+            const comments = await Comment.find({ author: user.username });
+            comments.forEach(c => async function(){
+                c.author = req.body.username;
+                await c.save({session});
+            })
         }
-        user.save();
+
+        await user.save({session});
+        if(usernameChange) await session.commitTransaction();
+
         res.send({
             id: user._id,
             firstname: user.firstname,
@@ -57,7 +103,10 @@ async function updateUser(req, res){
             email: user.email
         })
     }catch(err){
+        if(usernameChange) await session.abortTransaction();
         res.status(500).send('An error occurred while updating user information!');
+    }finally{
+        session.endSession();
     }
 }
 
@@ -134,7 +183,7 @@ async function changePassword(req, res){
         if(!user) return res.status(404).send('User not found!');
         let pass = await bcrypt.hash(req.body.password, 10);
         user.password = pass;
-        user.save();
+        await user.save();
         res.send('Password changed successfully');
     }catch(err){
         res.status(500).send('An error occurred while changing password');
