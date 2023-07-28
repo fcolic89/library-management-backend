@@ -132,21 +132,24 @@ async function findUserById(req, res){
 
 async function findUser(req, res){
     try{
-        if(!req.body.roles) req.body.roles = ['ADMIN', 'LIBRARIAN', 'REGULAR'];
+        if(!req.query.role) req.query.role = ['ADMIN', 'LIBRARIAN', 'REGULAR'];
 
         let userList = await User.find({
-            username: new RegExp(req.body.username, 'i'),
-            email: new RegExp(req.body.email, 'i'),
-            firstname: new RegExp(req.body.firstname, 'i'),
-            lastname: new RegExp(req.body.lastname, 'i'),
-            role: {$in: req.body.roles} 
-        });
+            username: new RegExp(req.query.username, 'i'),
+            email: new RegExp(req.query.email, 'i'),
+            firstname: new RegExp(req.query.firstname, 'i'),
+            lastname: new RegExp(req.query.lastname, 'i'),
+            role: {$in: req.query.role} 
+        })
+            .limit(req.query.size)
+            .skip((req.query.page-1)*req.query.size)
+            .sort({username: 1});
 
         let filteredList = [];
         userList.forEach(user => {
             let add = true;
-            if(req.body.canComment !== undefined && user.canComment !== req.body.canComment) add = false;
-            if(req.body.takeBook !== undefined && user.takeBook !== req.body.takeBook) add = false;
+            if(req.query.canComment !== undefined && user.canComment !== req.query.canComment) add = false;
+            if(req.query.takeBook !== undefined && user.takeBook !== req.query.takeBook) add = false;
 
             if(add) filteredList.push(user);
         });

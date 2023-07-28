@@ -85,17 +85,23 @@ async function findBookById(req, res){
 async function filterBooks(req, res){
     try{
         let bookList = []
-        if(req.body.genre === undefined || req.body.genre === []){
+        if(req.query.genre === undefined || req.query.genre === []){
             bookList = await Book.find({
-                title: new RegExp(req.body.title, 'i'),
-                author: new RegExp(req.body.author, 'i'),
-            });
+                title: new RegExp(req.query.title, 'i'),
+                author: new RegExp(req.query.author, 'i'),
+            })
+                .limit(req.query.size)
+                .skip((req.query.page-1)*req.qeury.size)
+                .sort({title: 1});
         }else{
             bookList = await Book.find({
-                title: new RegExp(req.body.title, 'i'),
-                author: new RegExp(req.body.author, 'i'),
-                genre: {$in: req.body.genre} 
-            });
+                title: new RegExp(req.query.title, 'i'),
+                author: new RegExp(req.query.author, 'i'),
+                genre: {$in: req.query.genre} 
+            })
+                .limit(req.query.size)
+                .skip((req.query.page-1)*req.qeury.size)
+                .sort({title: 1});
         }
 
         res.send(bookList);
@@ -157,8 +163,12 @@ async function findComments(req, res){
         let commentList = [];
         if(req.query.replies){
             commentList = await Comment.find({ bookId: req.params.bookId, parentCommentId: req.query.replies})
+                .limit(req.query.size)
+                .skip((req.query.page-1)*req.query.size);
         }else{
-            commentList = await Comment.find({ bookId: req.params.bookId, parentCommentId: null });
+            commentList = await Comment.find({ bookId: req.params.bookId, parentCommentId: null })
+                .limit(req.query.size)
+                .skip((req.query.page-1)*req.query.size);
         }
 
         res.send(commentList);

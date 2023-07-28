@@ -49,7 +49,8 @@ router.put('/', [auth.authentication, auth.authorization2([auth.admin, auth.libr
     userService.updateUser(req, res);
 });
 
-router.post('/find', [auth.authentication, auth.authorization2([auth.admin])], (req, res) => {
+router.get('/find', [auth.authentication, auth.authorization2([auth.admin])], (req, res) => {
+    if(!req.query.size || !req.query.page) return res.status(400).send('Page number of page size is not defined');
     userService.findUser(req, res);
 });
 
