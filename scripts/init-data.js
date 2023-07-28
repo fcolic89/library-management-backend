@@ -1,13 +1,4 @@
-db.createUser(
-{
-    user: "admin",
-    pwd: "admin",
-    roles: [
-      { role: "readWrite", db: "library" }
-    ]
-});
-
-db.users.insert({
+db.users.insertOne({
     username: "Admin",
     password: "$2b$10$kgfanuzauAUAhhCYL1wOe.q/1uA9G/9Yls1p/V8gE3wNKRIKi1ysm",
     email: "admin@email.com",
@@ -16,7 +7,7 @@ db.users.insert({
     role: "ADMIN",
 });
 
-db.users.insert({
+db.users.insertOne({
     username: "libraria4life",
     password: "$2b$10$kgfanuzauAUAhhCYL1wOe.q/1uA9G/9Yls1p/V8gE3wNKRIKi1ysm",
     email: "lib@email.com",
@@ -25,7 +16,7 @@ db.users.insert({
     role: "LIBRARIAN"
 });
 
-db.users.insert({
+db.users.insertOne({
     username: "regualrUser",
     password: "$2b$10$kgfanuzauAUAhhCYL1wOe.q/1uA9G/9Yls1p/V8gE3wNKRIKi1ysm",
     email: "reg@email.com",
@@ -33,3 +24,13 @@ db.users.insert({
     lastname: "Userland",
     role: "REGULAR"
 });
+
+db.createUser(
+{
+    user: "admin",
+    pwd: "admin",
+    roles: [
+      { role: "readWrite", db: "library" }
+    ]
+});
+db.grantRolesToUser('admin',[{ role: 'root', db: 'admin'}]);
