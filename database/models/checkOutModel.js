@@ -3,8 +3,8 @@ const { Schema, model } = mongoose;
 
 
 const checkOutSchema = new Schema({
-    userId: {type: Schema.Types.ObjectId, required: true},
-    bookId: {type: Schema.Types.ObjectId, required: true},
+    user: {type: Schema.Types.ObjectId, ref: 'User', required: true},
+    book: {type: Schema.Types.ObjectId, ref: 'Book', required: true},
     fine: {type: Number, default: 0},
     returned: {type: Date, default: null}
 }, {timestamps: true});

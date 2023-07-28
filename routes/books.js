@@ -32,10 +32,6 @@ const commentSchema = Joi.object({
     parentCommentId: Joi.string()
 });
 
-const returnBookSchema = Joi.object({
-    userId: Joi.string().required(),
-    bookId: Joi.string().required()
-});
 
 router.post('/', [auth.authentication, auth.authorization2([auth.librarian])],(req, res) => {
     const result = bookSchema.validate(req.body);
@@ -83,20 +79,6 @@ router.put('/comment/:commentId', [auth.authentication, auth.authorization2([aut
 router.get('/comment/:bookId', [auth.authentication, auth.authorization2([auth.regular])], (req, res) => {
     if(!req.query.size || !req.query.page) return res.status(400).send('Page number of page size is not defined');
     bookService.findComments(req, res);
-});
-
-
-router.post('/checkout', [auth.authentication, auth.authorization2([auth.regular])], (req, res) => {
-    if(!req.body.bookId) return res.status(400).send('Missing book id!');
-
-    bookService.checkoutBook(req, res);
-});
-
-router.post('/return', [auth.authentication, auth.authorization2([auth.librarian])], (req, res) => {
-    const {error} = returnBookSchema.validate(req.body);
-    if(error) return res.status(400).send(error);
-
-    bookService.returnBook(req, res);
 });
 
 module.exports = router;
