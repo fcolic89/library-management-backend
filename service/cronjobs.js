@@ -4,7 +4,7 @@ const Checkout = require('../database/models/checkOutModel');
 const timeLimit = 2592000; //30 days
 // const testTimeLiimt = 5;
 
-nodeCron.schedule('* * * * * *', async function(){
+nodeCron.schedule('* 0 1 * * *', async function(){
     try{
         const checkoutList = await Checkout.find({ returned: null });
         checkoutList.forEach(c =>{
