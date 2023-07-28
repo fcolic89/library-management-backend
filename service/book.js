@@ -171,7 +171,7 @@ async function checkoutBook(req, res){
 
 async function returnBook(req, res){
     try{
-        const checkout = await Checkout.findOne({ userId: req.body.userId, bookId: req.body.bookId });
+        const checkout = await Checkout.findOne({ userId: req.body.userId, bookId: req.body.bookId, returned: null });
         if(!checkoutBook) return res.status(400).send('Checkout does not exist!');
 
         const book = await Book.findOne({ _id: checkout.bookId });
