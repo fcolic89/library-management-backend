@@ -1,5 +1,6 @@
 const Book = require('../database/models/bookModel');
 const Checkout = require('../database/models/checkOutModel');
+const User = require('../database/models/userModel');
 const dbConnection = require('../database/db');
 
 async function checkoutBook(req, res){
@@ -40,7 +41,7 @@ async function checkoutBook(req, res){
 async function returnBook(req, res){
     const session = await dbConnection.startSession();
     try{
-        const checkout = await Checkout.findOne({ user: req.body.userId, book: req.body.bookId, returned: null });
+        const checkout = await Checkout.findOne({ user: req.body.userId, book: req.body.bookId, returned: false });
         if(!checkoutBook) return res.status(400).send('Checkout does not exist!');
 
         const book = await Book.findOne({ _id: checkout.book });
@@ -50,7 +51,7 @@ async function returnBook(req, res){
         book.quantityCurrent = book.quantityCurrent + 1;
         await book.save({session});
 
-        checkout.returned = Date.now();
+        checkout.returned = true;
         await checkout.save({session});
 
         await session.commitTransaction();
@@ -65,14 +66,24 @@ async function returnBook(req, res){
 
 async function findCheckouts(req, res){
     try{
-        const checkouts = await Checkout.find({
-            returned: null
-        })
-        .limit(req.query.size)
-        .skip((req.query.page-1)*req.query.size)
-        .populate('user', 'username')
-        .populate('book', 'title')
-        .exec();
+        let checkouts = [];
+        if(req.query.returned){
+            checkouts = await Checkout.find({
+                returned: req.query.returned
+            })
+                .limit(req.query.size)
+                .skip((req.query.page-1)*req.query.size)
+                .populate('user', 'username')
+                .populate('book', 'title')
+                .select(['user', 'book', 'fine', 'createdAt', 'returned']);
+        }else{
+            checkouts = await Checkout.find()
+                .limit(req.query.size)
+                .skip((req.query.page-1)*req.query.size)
+                .populate('user', 'username')
+                .populate('book', 'title')
+                .select(['user', 'book', 'fine', 'createdAt', 'returned']);
+        }
 
         res.send(checkouts);
     }catch(err){
@@ -80,8 +91,110 @@ async function findCheckouts(req, res){
     }
 }
 
+async function agregateFines(req, res){
+    try{
+         const fines = await Checkout.aggregate()
+            .limit(parseInt(req.query.size))
+            .skip((req.query.page-1)*req.query.size)
+            .lookup({from: 'users', localField: 'user', foreignField: '_id', as: 'userLookup'})
+            .project({
+                username: { $arrayElemAt: ['$userLookup.username', 0]}, 
+                userId: { $arrayElemAt: ['$userLookup._id', 0]}, 
+                fine: '$fine'
+            })
+            .group({_id: '$username', finesTotal: { $sum: '$fine' }});
+
+        res.send(fines);
+
+    }catch(err){
+        res.status(500).send('An error occurred while getting agregated fines! Error: ' + err.message);
+
+    }
+}
+
+async function userCheckouts(req, res){
+    try{
+        const user = await User.findOne({username: req.params.username});
+        if(!user) return res.status(404).send(`User with username ${req.params.username} was not found!`);
+        
+        let checkouts = [];
+        const dateSort = req.query.dateRising || 1;
+
+        let fined = {};
+        if(req.query.fined === 'true'){
+            fined.$gt = 0;
+        }else if(req.query.fined === 'false'){
+            fined.$eq = 0;
+        }else{
+            fined.$gt = -1;
+        }
+
+        if(req.query.returned){
+            checkouts = await Checkout.find({ 
+                user: user._id,
+                returned: req.query.returned,
+                fine: fined
+            })
+                .limit(req.query.size)
+                .skip((req.query.page-1)*req.query.size)
+                .populate('book', 'title')
+                .select(['createdAt', 'fine', 'returned'])
+                .sort({createdAt: dateSort});
+        }else{
+            checkouts = await Checkout.find({ 
+                user: user._id,
+                fine: fined
+            })
+                .limit(req.query.size)
+                .skip((req.query.page-1)*req.query.size)
+                .populate('book', 'title')
+                .select(['createdAt', 'fine', 'returned'])
+                .sort({createdAt: dateSort});
+        }
+
+        res.send(checkouts);
+    }catch(err){
+        res.status(500).send('An error occurred while getting user checkouts! Error: ' + err.message);
+
+    }
+}
+
+async function bookCheckouts(req, res){
+    try{
+        const dateSort = req.query.dateRising || 1;
+        let checkouts = [];
+        if(req.query.returned){
+            checkouts = await Checkout.find({
+                book: req.params.bookId,
+                returned: req.query.returned
+            })
+                .limit(req.query.size)
+                .skip((req.query.page-1)*req.query.size)
+                .populate('user', 'username')
+                .select(['createdAt', 'user', 'returned', 'fine'])
+                .sort({createdAt: dateSort});
+        }else{
+            checkouts = await Checkout.find({
+                book: req.params.bookId
+            })
+                .limit(req.query.size)
+                .skip((req.query.page-1)*req.query.size)
+                .populate('user', 'username')
+                .select(['createdAt', 'user', 'returned', 'fine'])
+                .sort({createdAt: dateSort});
+        }
+
+        res.send(checkouts);
+    }catch(err){
+        res.status(500).send('An error occurred while getting book checkouts! Error: ' + err.message);
+    }
+}
+
 module.exports = {
     checkoutBook,
     returnBook,
-    findCheckouts
+    findCheckouts,
+    agregateFines,
+    userCheckouts,
+    bookCheckouts
 }

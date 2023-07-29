@@ -27,4 +27,19 @@ router.get('/', [auth.authentication, auth.authorization2([auth.librarian])], (r
     checkoutService.findCheckouts(req, res);
 });
 
+router.get('/fines', [auth.authentication, auth.authorization2([auth.librarian])], (req, res) => {
+    if(!req.query.size || !req.query.page) return res.status(400).send('Page number of page size is not defined');
+    checkoutService.agregateFines(req, res);
+});
+
+router.get('/user/:username', [auth.authentication, auth.authorization2([auth.librarian])], (req, res) => {
+    if(!req.query.size || !req.query.page) return res.status(400).send('Page number of page size is not defined');
+    checkoutService.userCheckouts(req, res);
+});
+
+router.get('/book/:username', [auth.authentication, auth.authorization2([auth.librarian])], (req, res) => {
+    if(!req.query.size || !req.query.page) return res.status(400).send('Page number of page size is not defined');
+    checkoutService.bookCheckouts(req, res);
+});
+
 module.exports = router;
