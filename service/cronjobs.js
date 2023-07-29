@@ -6,7 +6,7 @@ const timeLimit = 2592000; //30 days
 
 nodeCron.schedule('* 0 1 * * *', async function(){
     try{
-        const checkoutList = await Checkout.find({ returned: null });
+        const checkoutList = await Checkout.find({ returned: false });
         checkoutList.forEach(c =>{
             let takenOut = Math.floor(c.createdAt / 1000);
             let today = Math.floor(Date.now() / 1000);

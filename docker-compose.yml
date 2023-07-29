@@ -52,7 +52,7 @@ services:
     restart: always
     container_name: lib-man-service
     ports:
-      - "9000:9000"
+      - "8080:8080"
     networks:
       - my-network
 

@@ -62,8 +62,4 @@ router.get('/profile', [auth.authentication, auth.authorization2([auth.admin, au
     userService.getUserInformation(req, res);
 });
 
-router.get('/test', [auth.authentication, auth.authorization2([auth.admin, auth.regular])],(req, res) => {
-    res.send('Testing user route!');
-});
-
 module.exports = router;

@@ -28,12 +28,16 @@ function authentication(req, res, next){
 
 function authorization2(roles){
     return async (req, res, next) => {
-        let user = await User.findOne({ _id: req.user.id });
+        try{
+            let user = await User.findOne({ _id: req.user.id });
+            if(!user) return res.status(401).send('Access denied. User does not exist!');
 
-        if(!user) return res.status(401).send('Access denied. User does not exist!');
-        if(!roles.includes(user.role)) return res.status(401).send('Access denied. User does not have permission for this resource!');
-        
-        next();
+            if(!roles.includes(user.role)) return res.status(401).send('Access denied. User does not have permission for this resource!');
+            
+            next();
+        }catch(err){
+            res.status(500).send('Could not authorize user! Error:' + err.message);
+        }
     }
 }
 module.exports = {
