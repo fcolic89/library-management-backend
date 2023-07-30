@@ -73,7 +73,7 @@ async function updateBook(req, res){
 async function findBookById(req, res){
     try{
         const book = await Book.findOne({ _id: req.params.id});
-        if(!book) res.status(404).send(`An error occurred while finding book! Book with id ${req.params.id} does not exist!`);
+        if(!book) return res.status(404).send(`An error occurred while finding book! Book with id ${req.params.id} does not exist!`);
 
         res.send(book);
     }catch(err){
@@ -90,7 +90,7 @@ async function filterBooks(req, res){
                 author: new RegExp(req.query.author, 'i'),
             })
                 .limit(req.query.size)
-                .skip((req.query.page-1)*req.qeury.size)
+                .skip((req.query.page-1)*req.query.size)
                 .sort({title: 1});
         }else{
             bookList = await Book.find({
@@ -99,7 +99,7 @@ async function filterBooks(req, res){
                 genre: {$in: req.query.genre} 
             })
                 .limit(req.query.size)
-                .skip((req.query.page-1)*req.qeury.size)
+                .skip((req.query.page-1)*req.query.size)
                 .sort({title: 1});
         }
 

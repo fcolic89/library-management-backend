@@ -45,7 +45,7 @@ router.delete('/:id', [auth.authentication, auth.authorization2([auth.librarian]
     bookService.deleteBook(req, res);
 });
 
-router.get('/:id', (req, res) => {
+router.get('/find/:id', (req, res) => {
     bookService.findBookById(req, res);
 });
 
