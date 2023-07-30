@@ -13,7 +13,7 @@ async function checkoutBook(req, res){
             return res.status(403).send('No more copies available!');
         }
 
-        const fined = await Checkout.findOne({ user: req.user.id, fine: {$gt: 0}, returned: null });
+        const fined = await Checkout.findOne({ user: req.user.id, fine: {$gt: 0}, returned: false });
         if(fined) return res.status(403).send('Cannot chekout a book while an overdue book is not retured!');
 
         const checkout = new Checkout({
