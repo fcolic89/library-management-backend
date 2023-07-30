@@ -5,10 +5,6 @@ services:
     image: mongo
     container_name: mongo
     restart: always
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=admin
-      - MONGO_INITDB_DATABASE=library
     ports:
       - "27017:27017"
     deploy:
@@ -20,30 +16,15 @@ services:
     volumes:
       - mongodb:/var/lib/db
       - ./scripts/mongosh-connect.sh:/mongosh-connect.sh
+      - ./scripts/init-data.js:/init-data.js
+      - ./scripts/mongo-replSet-init.js:/mongo-replSet-init.js
+      - ./scripts/mongo-init.sh:/mongo-init.sh
     healthcheck:
       test: mongosh --eval 'db.runCommand("ping").ok' localhost:27017/test --quiet
       interval: 5s
       retries: 10
       timeout: 10s
-    entrypoint: [ "bash", "-c", "/usr/bin/mongod --replSet replica-set-name --port 27017 --bind_ip_all" ]
-
-  mongo-init:
-    image: mongo
-    container_name: mongo-init
-    restart: no
-    ports:
-      - "27018:27017"
-    networks:
-      - my-network
-    volumes:
-      - mongodb:/var/lib/db
-      - ./scripts/mongo-init.sh:/mongo-init.sh
-      - ./scripts/init-data.js:/init-data.js
-      - ./scripts/mongo-replSet-init.js:/mongo-replSet-init.js
-    entrypoint: [ "bash", "mongo-init.sh"]
-    depends_on:
-      mongo:
-        condition: service_healthy
+    entrypoint: [ "bash", "mongo-init.sh" ]
 
   lib-managment:
     build:
