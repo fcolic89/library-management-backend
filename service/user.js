@@ -63,7 +63,7 @@ async function deleteUser(req, res){
 async function updateUser(req, res){
     const session = await dbConnection.startSession();
     try{
-        const user = await User.findOne({_id: req.body.id});
+        const user = await User.findOne({_id: req.user.id});
         var usernameChange = req.body.username !== user.username;
 
         user.firstname = req.body.firstname;
@@ -96,7 +96,6 @@ async function updateUser(req, res){
         if(usernameChange) await session.commitTransaction();
 
         res.send({
-            id: user._id,
             firstname: user.firstname,
             lastname: user.lastname,
             username: user.username,
@@ -167,14 +166,12 @@ async function getUserInformation(req, res){
             res.status(404).send(`User with id: ${req.user.id} not found!`);
         }else{
             res.send({
-                id: user._id,
                 firstname: user.firstname,
                 lastname: user.lastname,
                 username: user.username,
                 email: user.email
             });
         }
-
     }catch(err){
         res.status(500).send(`An error occurred while getting user with id: ${req.user.id}`)
     }
@@ -184,8 +181,10 @@ async function changePassword(req, res){
     try{
         const user = await User.findOne({ _id: req.user.id });
         if(!user) return res.status(404).send('User not found!');
+
         let pass = await bcrypt.hash(req.body.password, 10);
         user.password = pass;
+
         await user.save();
         res.send('Password changed successfully');
     }catch(err){

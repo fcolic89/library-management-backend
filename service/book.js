@@ -43,7 +43,7 @@ async function deleteBook(req, res){
 
         res.send('Book deleted!');
     }catch(err){
-        session.abortTransaction();
+        await session.abortTransaction();
         res.status(500).send('An error occurred while deleting book! Error: ' + err.message);
     }finally{
         session.endSession();
@@ -137,7 +137,7 @@ async function addComment(req, res){
         if(parentChange) await session.commitTransaction();
         res.send('Commnet saved!');
     }catch(err){
-        if(parentChange) session.abortTransaction();
+        if(parentChange) await session.abortTransaction();
         res.status(500).send('An error occurred while saving your commnet! Error: ' + err.message);
     }finally{
         session.endSession();

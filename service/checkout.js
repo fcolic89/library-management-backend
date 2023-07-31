@@ -105,7 +105,6 @@ async function agregateFines(req, res){
             .group({_id: '$username', finesTotal: { $sum: '$fine' }});
 
         res.send(fines);
-
     }catch(err){
         res.status(500).send('An error occurred while getting agregated fines! Error: ' + err.message);
 
