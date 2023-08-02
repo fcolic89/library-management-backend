@@ -33,7 +33,7 @@ async function deleteUser(req, res){
         const user = await User.findOne({ _id: req.params.id });
         if(!user) return res.status(400).send('Cannot delete user! User does not exist!.');
 
-        const checkouts = await Checkout.findOne({ userId: req.params.id, returned: null });
+        const checkouts = await Checkout.findOne({ userId: req.params.id, returned: false });
         if(checkouts && checkouts.length !== 0) return res.status(400).send('Cannot delete user! User still has unreturned books.');
 
         session.startTransaction();
@@ -44,17 +44,19 @@ async function deleteUser(req, res){
         const deleteCheckouts = await Checkout.deleteMany({ userId: req.params.id }, {session});
         if(!deleteCheckouts) throw new Error(`Could not find checkouts with user id: ${req.params.id}`);
 
-        const comments = Comment.find({ username: user.username });
-        comments.forEach(c => async function(){
-            c.author = '[deleted]';
-            await c.save({session});
-        });
+        const comments = await Comment.find({ author: user.username });
+        if(comments !== []){
+            comments.forEach(c => async function(){
+                c.author = '[deleted]';
+                await c.save({session});
+            });
+        }
 
         await session.commitTransaction();
-        res.send('User deleted!');
+        res.json({message: 'User deleted!'});
     }catch(err){
         await session.abortTransaction();
-        res.status(500).send('Error while trying to delete user: ' + err.message);
+        res.status(500).json({message: 'Error while trying to delete user: ' + err.message});
     }finally{
         session.endSession();
     }

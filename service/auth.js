@@ -14,7 +14,7 @@ async function login(req, res){
     let token = jwt.sign({
             id: user.id,
             username: user.username,
-            // role: user.role
+            role: user.role
         }, privateKey);
     res.json({'jwt': token});
 }
