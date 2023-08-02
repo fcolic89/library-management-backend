@@ -21,9 +21,9 @@ async function saveUser(req, res) {
             user.takeBook = false;
         }
         await user.save();
-        res.send("New user saved!");
+        res.json({message: "New user saved!"});
     }catch(err){
-        res.status(500).send('Failed to save new user!Error: ' + err.message);
+        res.status(500).json({message: 'Failed to save new user!Error: ' + err.message});
     }
 }
 

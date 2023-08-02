@@ -23,7 +23,7 @@ const updateSchema = Joi.object({
 
 router.post('/register', (req, res) => {
     const result = registerSchema.validate(req.body);
-    if(result.error){
+    if(result.error || req.body.role !== auth.regular){
         return res.status(400).send(result.error);
     }
     userService.saveUser(req, res);
