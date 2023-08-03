@@ -72,7 +72,7 @@ async function updateUser(req, res){
         user.lastname = req.body.lastname;
         user.email = req.body.email;
         user.username = req.body.username;
-        
+       
         if(req.body.email !== user.email){
             let tmpUser = await User.findOne({email: req.body.email});
             if(tmpUser && user._id !== tmpUser._id){
@@ -134,6 +134,7 @@ async function findUserById(req, res){
 async function findUser(req, res){
     try{
         if(!req.query.role) req.query.role = ['ADMIN', 'LIBRARIAN', 'REGULAR'];
+        else req.query.role = req.query.role.split(',');
 
         let userList = await User.find({
             username: new RegExp(req.query.username, 'i'),
@@ -165,7 +166,7 @@ async function getUserInformation(req, res){
     try{
         let user = await User.findOne({ _id: req.user.id});
         if(!user){
-            res.status(404).send(`User with id: ${req.user.id} not found!`);
+            res.status(404).json({message: `User with id: ${req.user.id} not found!`});
         }else{
             res.send({
                 firstname: user.firstname,
@@ -179,18 +180,46 @@ async function getUserInformation(req, res){
     }
 }
 
+async function changeCommentPriv(req ,res){
+    try{
+        const user = await User.findOne({_id: req.body.id});
+        if(!user) return res.status(404).json({message: `User with id: ${req.body.id} does not exist!`});
+        else if(user.role === 'ADMIN') return res.status(406).json({message: 'Cant change admin user privileges!'});
+
+        user.canComment = !user.canComment;
+        await user.save();
+        res.json({message: 'Privilege changed!'});
+    }catch(err){
+        res.status(500).json({message: `An error occurred while changing user comment privileges: ${req.user.id}`})
+    }
+}
+
+async function changeTakeBookPriv(req ,res){
+    try{
+        const user = await User.findOne({_id: req.body.id});
+        if(!user) return res.status(404).json({message: `User with id: ${req.body.id} does not exist!`});
+        else if(user.role !== 'REGULAR') return res.status(406).json({message: 'Cant change non-regular user privileges!'});
+
+        user.takeBook = !user.takeBook;
+        await user.save();
+        res.json({message: 'Privilege changed!'});
+    }catch(err){
+        res.status(500).json({message: `An error occurred while changing user comment privileges: ${req.user.id}`})
+    }
+}
+
 async function changePassword(req, res){
     try{
         const user = await User.findOne({ _id: req.user.id });
-        if(!user) return res.status(404).send('User not found!');
+        if(!user) return res.status(404).json({message: 'User not found!'});
 
         let pass = await bcrypt.hash(req.body.password, 10);
         user.password = pass;
 
         await user.save();
-        res.send('Password changed successfully');
+        res.json({message: 'Password changed successfully'});
     }catch(err){
-        res.status(500).send('An error occurred while changing password');
+        res.status(500).json({message: 'An error occurred while changing password'});
     }
 }
 
@@ -201,5 +230,7 @@ module.exports = {
     findUserById,
     getUserInformation,
     changePassword,
-    findUser
+    findUser,
+    changeCommentPriv,
+    changeTakeBookPriv
 }

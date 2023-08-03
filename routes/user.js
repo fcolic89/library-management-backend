@@ -14,11 +14,14 @@ const registerSchema = Joi.object({
 });
 
 const updateSchema = Joi.object({
-    id: Joi.string().required(),
     username: Joi.string().required(),
     email: Joi.string().required(),
     firstname: Joi.string().required(),
     lastname: Joi.string().required()
+});
+
+const changePrivSchema = Joi.object({
+    id: Joi.string().required()
 });
 
 router.post('/register', (req, res) => {
@@ -54,12 +57,27 @@ router.get('/find', [auth.authentication, auth.authorization2([auth.admin])], (r
     userService.findUser(req, res);
 });
 
-router.post('/pwd-change', [auth.authentication, auth.authorization2([auth.admin, auth.librarian, auth.regular])], (req, res) => {
+router.put('/pwd-change', [auth.authentication, auth.authorization2([auth.admin, auth.librarian, auth.regular])], (req, res) => {
+    if(!req.body.password) return res.status(400).json({message: 'Missing password!'});
     userService.changePassword(req, res);
 });
 
 router.get('/profile', [auth.authentication, auth.authorization2([auth.admin, auth.librarian, auth.regular])], (req, res) => {
     userService.getUserInformation(req, res);
+});
+
+router.put('/priv/comment', [auth.authentication, auth.authorization2([auth.admin])], (req, res) =>{
+    const { error } = changePrivSchema.validate(req.body);
+    if(error) return res.status(400).join({message: error});
+
+    userService.changeCommentPriv(req, res);
+});
+
+router.put('/priv/book', [auth.authentication, auth.authorization2([auth.admin])], (req, res) =>{
+    const { error } = changePrivSchema.validate(req.body);
+    if(error) return res.status(400).join({message: error});
+
+    userService.changeTakeBookPriv(req, res);
 });
 
 module.exports = router;
