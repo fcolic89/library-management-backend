@@ -55,10 +55,10 @@ async function returnBook(req, res){
         await checkout.save({session});
 
         await session.commitTransaction();
-        res.send('Book returned!');
+        res.json({message: 'Book returned!'});
     }catch(err){
         await session.abortTransaction();
-        res.status(500).send('An error occurred while returning a book! Error: ' + err.message);
+        res.status(500).json({message: 'An error occurred while returning a book! Error: ' + err.message});
     }finally{
         session.endSession();
     }
@@ -85,9 +85,9 @@ async function findCheckouts(req, res){
                 .select(['user', 'book', 'fine', 'createdAt', 'returned']);
         }
 
-        res.send(checkouts);
+        res.json(checkouts);
     }catch(err){
-        res.status(500).send('An error occurred while getting checkout! Error: ' + err.message);
+        res.status(500).json({message: 'An error occurred while getting checkout! Error: ' + err.message});
     }
 }
 
@@ -136,8 +136,9 @@ async function userCheckouts(req, res){
             })
                 .limit(req.query.size)
                 .skip((req.query.page-1)*req.query.size)
+                .populate('user', 'username')
                 .populate('book', 'title')
-                .select(['createdAt', 'fine', 'returned'])
+                .select(['user', 'book', 'fine', 'createdAt', 'returned'])
                 .sort({createdAt: dateSort});
         }else{
             checkouts = await Checkout.find({ 
@@ -146,15 +147,15 @@ async function userCheckouts(req, res){
             })
                 .limit(req.query.size)
                 .skip((req.query.page-1)*req.query.size)
+                .populate('user', 'username')
                 .populate('book', 'title')
-                .select(['createdAt', 'fine', 'returned'])
+                .select(['user', 'book', 'fine', 'createdAt', 'returned'])
                 .sort({createdAt: dateSort});
         }
 
         res.send(checkouts);
     }catch(err){
-        res.status(500).send('An error occurred while getting user checkouts! Error: ' + err.message);
-
+        res.status(500).json({message: 'An error occurred while getting user checkouts! Error: ' + err.message});
     }
 }
 
@@ -170,7 +171,8 @@ async function bookCheckouts(req, res){
                 .limit(req.query.size)
                 .skip((req.query.page-1)*req.query.size)
                 .populate('user', 'username')
-                .select(['createdAt', 'user', 'returned', 'fine'])
+                .populate('book', 'title')
+                .select(['user', 'book', 'fine', 'createdAt', 'returned'])
                 .sort({createdAt: dateSort});
         }else{
             checkouts = await Checkout.find({
@@ -179,13 +181,13 @@ async function bookCheckouts(req, res){
                 .limit(req.query.size)
                 .skip((req.query.page-1)*req.query.size)
                 .populate('user', 'username')
-                .select(['createdAt', 'user', 'returned', 'fine'])
+                .populate('book', 'title')
+                .select(['user', 'book', 'fine', 'createdAt', 'returned'])
                 .sort({createdAt: dateSort});
         }
-
         res.send(checkouts);
     }catch(err){
-        res.status(500).send('An error occurred while getting book checkouts! Error: ' + err.message);
+        res.status(500).json({message: 'An error occurred while getting book checkouts! Error: ' + err.message});
     }
 }
 
