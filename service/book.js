@@ -53,7 +53,7 @@ async function deleteBook(req, res){
 
 async function updateBook(req, res){
     try{
-        const book = await Book.findOne({ _id: req.body.id});
+        const book = await Book.findOne({ _id: req.body._id});
         if(!book) return res.status(404).send(`An error occurred while updating a book! Book with id ${req.body.id} does not exist.`);
         
         book.title = req.body.title;
@@ -61,13 +61,14 @@ async function updateBook(req, res){
         book.pageCount = req.body.pageCount;
         book.author = req.body.author;
         book.dateOfPublishing = req.body.dateOfPublishing;
-        book.quantityMax = req.body.quantity;
+        book.quantityMax = req.body.quantityMax;
         book.imageUrl = req.body.imageUrl;
+        book.genre = req.body.genre;
 
         await book.save();
-        res.send('Book updated!');
+        res.json({message: 'Book updated!'});
     }catch(err){
-        res.status(500).send('An error occurred while updating book! Error: ' + err.message);
+        res.status(500).json({message: 'An error occurred while updating book! Error: ' + err.message});
     }
 }
 
@@ -75,6 +76,11 @@ async function findBookById(req, res){
     try{
         const book = await Book.findOne({ _id: req.params.id});
         if(!book) return res.status(404).send(`An error occurred while finding book! Book with id ${req.params.id} does not exist!`);
+
+        let rating = 0;
+        if(book.rating.ratingCount !== 0) rating = book.rating.ratingSum/book.rating.ratingCount;
+        // console.log(`rating: ${rating}, book.rating.ratingSum: ${book.rating.ratingSum}, book.rating.ratingCount: ${book.rating.ratingCount}`);
+        book.rating = rating;
 
         res.send(book);
     }catch(err){

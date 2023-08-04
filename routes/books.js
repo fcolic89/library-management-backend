@@ -5,27 +5,31 @@ const bookService = require('../service/book');
 const auth = require('../middleware/auth');
 
 const bookSchema = Joi.object({
+    _id: Joi.string().allow(null, '').optional(),
     title: Joi.string().min(3).required(),
     description: Joi.string().min(3).required(),
     author: Joi.string().required(),
     dateOfPublishing: Joi.string().required(),
     pageCount: Joi.number().required(),
-    rating: Joi.number().optional(),
-    quantity: Joi.number().required(),
+    rating: Joi.number().allow(null, '').optional(),
+    quantityMax: Joi.number().required(),
+    quantityCurrent: Joi.number().allow(null, 0).optional(),
     genre: Joi.array().required(),
-    imageUrl: Joi.string().optional()
+    imageUrl: Joi.string().allow(null, '').optional()
 });
 
 const updateSchema = Joi.object({
-    id: Joi.string().required(),
+    _id: Joi.string().required(),
     title: Joi.string().min(3).required(),
     description: Joi.string().min(3).required(),
     author: Joi.string().required(),
     dateOfPublishing: Joi.string().required(),
     pageCount: Joi.number().required(),
-    quantity: Joi.number().required(),
+    quantityMax: Joi.number().required(),
+    quantityCurrent: Joi.number().allow(null, 0).optional(),
     genre: Joi.array().required(),
-    imageUrl: Joi.string()
+    imageUrl: Joi.string().allow(null, '').optional(),
+    rating: Joi.number().allow(null, '').optional()
 });
 
 const commentSchema = Joi.object({
