@@ -1,5 +1,6 @@
 const Book = require('../database/models/bookModel');
 const Comment = require('../database/models/commentModel');
+const Genre = require('../database/models/genreModel');
 const dbConnection = require('../database/db');
 
 async function saveBook(req, res) {
@@ -16,9 +17,9 @@ async function saveBook(req, res) {
             genre: req.body.genre
         });
         await book.save();
-        res.send("New book saved!");
+        res.json({message: "New book saved!"});
     }catch(err){
-        res.status(500).send('Failed to save new book!Error: ' + err.message);
+        res.status(500).json({message: 'Failed to save new book!Error: ' + err.message});
     }
 }
 
@@ -84,7 +85,7 @@ async function findBookById(req, res){
 async function filterBooks(req, res){
     try{
         let bookList = []
-        if(req.query.genre === undefined || req.query.genre === []){
+        if(req.query.genre === undefined || req.query.genre === ''){
             bookList = await Book.find({
                 title: new RegExp(req.query.title, 'i'),
                 author: new RegExp(req.query.author, 'i'),
@@ -96,13 +97,19 @@ async function filterBooks(req, res){
             bookList = await Book.find({
                 title: new RegExp(req.query.title, 'i'),
                 author: new RegExp(req.query.author, 'i'),
-                genre: {$in: req.query.genre} 
+                genre: {$in: req.query.genre.split(',')} 
             })
                 .limit(req.query.size)
                 .skip((req.query.page-1)*req.query.size)
                 .sort({title: 1});
         }
-
+        bookList.forEach(book =>{
+            let rating = 0;
+            if(book.rating.ratingCount !== 0) rating = book.rating.ratingSum/book.rating.ratingCount;
+            // console.log(`rating: ${rating}, book.rating.ratingSum: ${book.rating.ratingSum}, book.rating.ratingCount: ${book.rating.ratingCount}`);
+            book.rating = rating;
+        });
+        
         res.send(bookList);
     }catch(err){
         res.status(500).send('An error occurred while finding book! Error: ' + err.message);
@@ -176,6 +183,62 @@ async function findComments(req, res){
     }
 }
 
+async function getGenre(req, res){
+    try{
+        let genreList = [];
+        genreList = await Genre.find()
+            .limit(req.params.size)
+            .skip((req.params.page-1)*req.params.size);
+
+        res.send(genreList);
+    }catch(err){
+        res.status(500).json({message: 'An error occurred while getting genres! Error: ' + err.message});
+    }
+}
+
+async function addGenre(req, res){
+    try{
+        const genre = new Genre({
+            name: req.body.name
+        });
+
+        await genre.save();
+        res.json({message: 'Genre added!'});
+    }catch(err){
+        res.status(500).json({message: 'An error occurred while adding genre! Error: ' + err.message});
+    }
+}
+
+async function deleteGenre(req, res){
+    const session = await dbConnection.startSession();
+    try{
+        const genre = await Genre.find({name: req.body.name});
+        if(!genre) return res.status(404).json({message: `Genre with name: ${req.body.name} does not exist!`});
+
+        genre.deleteOne({session});
+
+        const books = await Book.find({genre: {$in: [req.body.name]}});
+        books.forEach(book => async () => {
+            for(let i = 0; i < book.genre.length; i++){
+                if(book.genre[i] === req.body.name){
+                    book.genre.splice(i, 1);
+                    await book.save({session});
+                }
+            }
+        });
+        await session.commitTransaction();
+        
+        re.json({message: 'Genre deleted!'});
+    }catch(err){
+        await session.abortTransaction();
+        res.status(500).json({message: 'An error occurred while deleting genre! Error: ' + err.message});
+    }finally{
+        session.endSession();
+    }
+    
+}
+
+
 module.exports = {
     saveBook,
     deleteBook,
@@ -185,4 +248,7 @@ module.exports = {
     addComment,
     editComment,
     findComments,
+    getGenre,
+    addGenre,
+    deleteGenre
 };

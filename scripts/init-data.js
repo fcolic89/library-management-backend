@@ -111,6 +111,19 @@ db.users.insertOne({
     takeBook: false
 });
 
+db.genres.insertOne({
+    name: "Classic"
+});
+db.genres.insertOne({
+    name: "Comedy"
+});
+db.genres.insertOne({
+    name: "History"
+});
+db.genres.insertOne({
+    name: "Fiction"
+});
+
 db.createUser(
 {
     user: "admin",

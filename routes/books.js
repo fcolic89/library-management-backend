@@ -10,9 +10,10 @@ const bookSchema = Joi.object({
     author: Joi.string().required(),
     dateOfPublishing: Joi.string().required(),
     pageCount: Joi.number().required(),
+    rating: Joi.number().optional(),
     quantity: Joi.number().required(),
     genre: Joi.array().required(),
-    imgUrl: Joi.string()
+    imageUrl: Joi.string().optional()
 });
 
 const updateSchema = Joi.object({
@@ -24,7 +25,7 @@ const updateSchema = Joi.object({
     pageCount: Joi.number().required(),
     quantity: Joi.number().required(),
     genre: Joi.array().required(),
-    imgUrl: Joi.string()
+    imageUrl: Joi.string()
 });
 
 const commentSchema = Joi.object({
@@ -79,6 +80,21 @@ router.put('/comment/:commentId', [auth.authentication, auth.authorization2([aut
 router.get('/comment/:bookId', [auth.authentication, auth.authorization2([auth.regular])], (req, res) => {
     if(!req.query.size || !req.query.page) return res.status(400).send('Page number of page size is not defined');
     bookService.findComments(req, res);
+});
+
+router.get('/genre', [auth.authentication, auth.authorization2([auth.librarian, auth.regular])], (req, res) => {
+    if(!req.query.size || !req.query.page) return res.status(400).json({message: 'Page number of page size is not defined'});
+    bookService.getGenre(req, res);
+});
+
+router.post('/genre', [auth.authentication, auth.authorization2([auth.librarian])], (req, res) => {
+    if(!req.body.name) return res.status(400).json({message: 'Missing genre name!'});
+    bookService.addGenre(req, res);
+});
+
+router.delete('/genre', [auth.authentication, auth.authorization2([auth.librarian])], (req, res) => {
+    if(!req.body.name) return res.status(400).json({message: 'Missing genre name!'});
+    bookService.deleteGenre(req, res);
 });
 
 module.exports = router;
