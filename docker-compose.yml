@@ -14,7 +14,7 @@ services:
     networks:
       - my-network
     volumes:
-      - mongodb:/var/lib/db
+      - mongodb:/data/db
       - ./scripts/mongosh-connect.sh:/mongosh-connect.sh
       - ./scripts/init-data.js:/init-data.js
       - ./scripts/mongo-replSet-init.js:/mongo-replSet-init.js
@@ -43,4 +43,3 @@ networks:
 
 volumes:
   mongodb:
-    driver: local

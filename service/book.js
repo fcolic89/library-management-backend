@@ -10,8 +10,8 @@ async function saveBook(req, res) {
             author: req.body.author,
             dateOfPublishing: req.body.dateOfPublishing,
             pageCount: req.body.pageCount,
-            quantityMax: req.body.quantity,
-            quantityCurrent: req.body.quantity,
+            quantityMax: req.body.quantityMax,
+            quantityCurrent: req.body.quantityMax,
             imageUrl: req.body.imageUrl,
             description: req.body.description,
             genre: req.body.genre
