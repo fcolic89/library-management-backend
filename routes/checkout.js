@@ -42,4 +42,9 @@ router.get('/book/:bookId', [auth.authentication, auth.authorization2([auth.libr
     checkoutService.bookCheckouts(req, res);
 });
 
+router.get('/self', [auth.authentication, auth.authorization2([auth.regular])], (req, res) => {
+    if(!req.query.size || !req.query.page) return res.status(400).send('Page number of page size is not defined');
+    checkoutService.myCheckouts(req, res);
+});
+
 module.exports = router;

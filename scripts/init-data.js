@@ -21,7 +21,7 @@ db.users.insertOne({
 });
 
 db.users.insertOne({
-    username: "regualrUser",
+    username: "regularUser",
     password: "$2b$10$kgfanuzauAUAhhCYL1wOe.q/1uA9G/9Yls1p/V8gE3wNKRIKi1ysm",
     email: "reg@email.com",
     firstname: "Reginald",
