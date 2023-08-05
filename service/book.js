@@ -218,30 +218,32 @@ async function addGenre(req, res){
 async function deleteGenre(req, res){
     const session = await dbConnection.startSession();
     try{
-        const genre = await Genre.find({name: req.body.name});
-        if(!genre) return res.status(404).json({message: `Genre with name: ${req.body.name} does not exist!`});
+        const genre = await Genre.find({name: req.params.name});
+        if(!genre) return res.status(404).json({message: `Genre with name: ${req.params.name} does not exist!`});
+        
+        session.startTransaction(); 
 
-        genre.deleteOne({session});
+        await Genre.deleteOne({name: req.params.name}, {session});
 
-        const books = await Book.find({genre: {$in: [req.body.name]}});
+        const books = await Book.find({genre: {$in: [req.params.name]}});
         books.forEach(book => async () => {
             for(let i = 0; i < book.genre.length; i++){
-                if(book.genre[i] === req.body.name){
+                if(book.genre[i] === req.params.name){
                     book.genre.splice(i, 1);
                     await book.save({session});
+                    break;
                 }
             }
         });
         await session.commitTransaction();
         
-        re.json({message: 'Genre deleted!'});
+        res.json({message: 'Genre deleted!'});
     }catch(err){
-        await session.abortTransaction();
         res.status(500).json({message: 'An error occurred while deleting genre! Error: ' + err.message});
+        await session.abortTransaction();
     }finally{
         session.endSession();
     }
-    
 }
 
 

@@ -96,8 +96,7 @@ router.post('/genre', [auth.authentication, auth.authorization2([auth.librarian]
     bookService.addGenre(req, res);
 });
 
-router.delete('/genre', [auth.authentication, auth.authorization2([auth.librarian])], (req, res) => {
-    if(!req.body.name) return res.status(400).json({message: 'Missing genre name!'});
+router.delete('/genre/:name', [auth.authentication, auth.authorization2([auth.librarian])], (req, res) => {
     bookService.deleteGenre(req, res);
 });
 
