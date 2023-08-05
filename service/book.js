@@ -27,7 +27,7 @@ async function deleteBook(req, res){
     const session = await dbConnection.startSession();
     try{
         const book = await Book.findOne({ _id: req.params.id});
-        if(!book) return res.status(404).send(`An error occurred while deleting book! Book with id: ${req.params.id} does not exist.`);
+        if(!book) return res.status(404).json({message: `An error occurred while deleting book! Book with id: ${req.params.id} does not exist.`});
         if(book.quantityMax === book.quantityCurrent){ 
             session.startTransaction();
 
@@ -40,12 +40,12 @@ async function deleteBook(req, res){
 
             await session.commitTransaction();
         }
-        else return res.status(500).send('Cannot deleted book! Copies of the book have been checked out.');
+        else return res.status(500).json({message: 'Cannot deleted book! Copies of the book have been checked out.'});
 
-        res.send('Book deleted!');
+        res.json({message: 'Book deleted!'});
     }catch(err){
         await session.abortTransaction();
-        res.status(500).send('An error occurred while deleting book! Error: ' + err.message);
+        res.status(500).json({message: 'An error occurred while deleting book! Error: ' + err.message});
     }finally{
         session.endSession();
     }
