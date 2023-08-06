@@ -74,17 +74,27 @@ async function updateBook(req, res){
 
 async function findBookById(req, res){
     try{
-        const book = await Book.findOne({ _id: req.params.id});
-        if(!book) return res.status(404).send(`An error occurred while finding book! Book with id ${req.params.id} does not exist!`);
+        let book = await Book.findOne({ _id: req.params.id});
+        if(!book) return res.status(404).json({message: `An error occurred while finding book! Book with id ${req.params.id} does not exist!`});
 
         let rating = 0;
-        if(book.rating.ratingCount !== 0) rating = book.rating.ratingSum/book.rating.ratingCount;
-        // console.log(`rating: ${rating}, book.rating.ratingSum: ${book.rating.ratingSum}, book.rating.ratingCount: ${book.rating.ratingCount}`);
-        book.rating = rating;
-
-        res.send(book);
+        if(book.rating.ratingCount !== 0) 
+            rating = book.rating.ratingSum/book.rating.ratingCount;
+        res.send({
+            _id: book._id,
+            author: book.author,
+            description: book.description,
+            pageCount: book.pageCount,
+            quantityMax: book.quantityMax,
+            quantityCurrent: book.quantityCurrent,
+            title: book.title,
+            genre: book.genre,
+            imageUrl: book.imageUrl,
+            dateOfPublishing: book.dateOfPublishing,
+            rating: rating
+        });
     }catch(err){
-        res.status(500).send('An error occurred while finding book! Error: ' + err.message);
+        res.status(500).json({message: 'An error occurred while finding book! Error: ' + err.message});
     }
 }
 
@@ -109,25 +119,70 @@ async function filterBooks(req, res){
                 .skip((req.query.page-1)*req.query.size)
                 .sort({title: 1});
         }
+
+        let returnList = []
         bookList.forEach(book =>{
             let rating = 0;
             if(book.rating.ratingCount !== 0) rating = book.rating.ratingSum/book.rating.ratingCount;
-            // console.log(`rating: ${rating}, book.rating.ratingSum: ${book.rating.ratingSum}, book.rating.ratingCount: ${book.rating.ratingCount}`);
-            book.rating = rating;
+            returnList.push({
+                _id: book._id,
+                author: book.author,
+                description: book.description,
+                pageCount: book.pageCount,
+                quantityMax: book.quantityMax,
+                quantityCurrent: book.quantityCurrent,
+                title: book.title,
+                genre: book.genre,
+                imageUrl: book.imageUrl,
+                dateOfPublishing: book.dateOfPublishing,
+                rating: rating
+            });
         });
         
-        res.send(bookList);
+        res.send(returnList);
     }catch(err){
-        res.status(500).send('An error occurred while finding book! Error: ' + err.message);
+        res.status(500).json({message: 'An error occurred while finding book! Error: ' + err.message});
     }
 }
 
 async function addComment(req, res){
-    let parentChange = false;
     let session = await dbConnection.startSession();
     try{
-        const book = await Book.find({ _id: req.params.bookId})
-        if(!book) return res.status(404).send(`An error occurred while saving your commnet! Error: Book with id: ${req.body.bookId} does not exist`);
+        const book = await Book.findOne({ _id: req.params.bookId})
+        if(!book) return res.status(404).json({message: `An error occurred while saving your commnet! Error: Book with id: ${req.body.bookId} does not exist`});
+
+        const comment = new Comment({
+            bookId: req.params.bookId,             
+            author: req.user.username,
+            comment: req.body.comment,
+            rating: req.body.rating
+        });
+
+        session.startTransaction();
+
+        book.rating.ratingSum += comment.rating;
+        book.rating.ratingCount++;
+        
+        let com = await comment.save({session});
+        await book.save({session});
+
+        await session.commitTransaction();
+
+        res.json({messsage: com._id});
+    }catch(err){
+        await session.abortTransaction();
+        res.status(500).json({message: 'An error occurred while saving your commnet! Error: ' + err.message});
+    }
+}
+
+async function replyComment(req, res){
+    let session = await dbConnection.startSession();
+    try{
+        const book = await Book.findOne({ _id: req.params.bookId})
+        if(!book) return res.status(404).json({message: `An error occurred while saving your commnet! Error: Book with id: ${req.body.bookId} does not exist`});
+
+        const parentComment = await Comment.findOne({ _id: req.body.parentCommentId });
+        if(!parentComment) return res.status(404).json({message: `An error occurred while saving your commnet! Error: Comment with id: ${req.body.parentCommentId} does not exist`});
 
         const comment = new Comment({
             bookId: req.params.bookId,             
@@ -135,38 +190,34 @@ async function addComment(req, res){
             comment: req.body.comment,
             parentCommentId: req.body.parentCommentId
         });
-        if(req.body.parentCommentId){
-            const parent = await Comment.findOne({ _id: req.body.parentCommentId });
-            if(!parent) return res.status(404).send(`An error occurred while saving your commnet! Error: Comment with id: ${req.body.parentCommentId} does not exist`);
-            if(!parent.replies){
-                parent.replies = true;
-                parentChange = true;
-                await parent.save({session});
-            }
+        
+        session.startTransaction();
+
+        if(!parentComment.replies){
+            parentComment.replies = true;
+            await parentComment.save({session});
         }
+        let com = await comment.save({session});
 
-        await comment.save({session});
-
-        if(parentChange) await session.commitTransaction();
-        res.send('Commnet saved!');
+        await session.commitTransaction();
+        
+        res.json({message: com._id});
     }catch(err){
-        if(parentChange) await session.abortTransaction();
-        res.status(500).send('An error occurred while saving your commnet! Error: ' + err.message);
-    }finally{
-        session.endSession();
-    } 
+        await session.abortTransaction();
+        res.status(500).json({message: 'An error occurred while saving your commnet! Error: ' + err.message});
+    }
 }
 
 async function editComment(req, res){
     try{
         const com = await Comment.findOne({ _id : req.params.commentId });
-        if(!com) return res.status(404).send('Cant edit comment! Comment does not exist.');
+        if(!com) return res.status(404).json({message: 'Cant edit comment! Comment does not exist.'});
 
         com.comment = req.body.comment;
         await com.save();
-        res.send('Commend edited!');
+        res.json({message: 'Commend edited!'});
     } catch(err){
-        res.status(500).send('An error occurred while editing comment! Error: ' + err.message);
+        res.status(500).json({message: 'An error occurred while editing comment! Error: ' + err.message});
     }
 }
 
@@ -185,7 +236,7 @@ async function findComments(req, res){
 
         res.send(commentList);
     }catch(err){
-        res.status(500).send('An error occurred while getting comments! Error: ' + err.message);
+        res.status(500).json({message: 'An error occurred while getting comments! Error: ' + err.message});
     }
 }
 
@@ -254,6 +305,7 @@ module.exports = {
     findBookById,
     filterBooks,
     addComment,
+    replyComment,
     editComment,
     findComments,
     getGenre,

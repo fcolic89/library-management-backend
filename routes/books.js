@@ -33,8 +33,13 @@ const updateSchema = Joi.object({
 });
 
 const commentSchema = Joi.object({
+    rating: Joi.number().required(),
+    comment: Joi.string().allow('', null).optional(),
+});
+
+const replyCommentSchema = Joi.object({
     comment: Joi.string().required(),
-    parentCommentId: Joi.string()
+    parentCommentId: Joi.string().required()
 });
 
 
@@ -67,21 +72,27 @@ router.put('/', [auth.authentication, auth.authorization2([auth.librarian])],(re
     bookService.updateBook(req, res);
 });
 
-router.post('/comment/:bookId', [auth.authentication, auth.authorization2([auth.regular])], (req, res) => {
+router.post('/comment/:bookId', [auth.authentication, auth.authorization2([auth.librarian,auth.regular])], (req, res) => {
     const {error} = commentSchema.validate(req.body);
     if(error) return res.status(400).send(error);
 
     bookService.addComment(req, res);
 });
+router.post('/comment-reply/:bookId', [auth.authentication, auth.authorization2([auth.librarian, auth.regular])], (req, res) => {
+    const {error} = replyCommentSchema.validate(req.body);
+    if(error) return res.status(400).send(error);
 
-router.put('/comment/:commentId', [auth.authentication, auth.authorization2([auth.regular])], (req, res) => {
+    bookService.replyComment(req, res);
+});
+
+router.put('/comment/:commentId', [auth.authentication, auth.authorization2([auth.librarian, auth.regular])], (req, res) => {
     const {error} = commentSchema.validate(req.body);
     if(error) return res.status(400).send(error);
 
     bookService.editComment(req, res);
 });
 
-router.get('/comment/:bookId', [auth.authentication, auth.authorization2([auth.regular])], (req, res) => {
+router.get('/comment/:bookId', [auth.authentication, auth.authorization2([auth.librarian, auth.regular])], (req, res) => {
     if(!req.query.size || !req.query.page) return res.status(400).send('Page number of page size is not defined');
     bookService.findComments(req, res);
 });
