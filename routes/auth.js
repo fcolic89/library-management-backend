@@ -15,7 +15,7 @@ router.post('/login', (req, res) => {
         return res.status(400).send(result.error);
     }
     //check for user and return jwt
-    authService(req, res);
+    authService.login(req, res);
 });
 
 module.exports = router;

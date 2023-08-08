@@ -14,10 +14,25 @@ async function login(req, res){
     let token = jwt.sign({
             id: user.id,
             username: user.username,
-            role: user.role
+            role: user.role,
+            canComment: user.canComment,
+            takeBook: user.takeBook
         }, privateKey);
     res.json({'jwt': token});
 }
 
-module.exports = login;
+function generateToken(id, username, role, canComment, takeBook){
+    return(jwt.sign({
+            id: id,
+            username: username,
+            role: role,
+            canComment: canComment,
+            takeBook: takeBook
+        }, privateKey));
+}
+
+module.exports = {
+    login,
+    generateToken
+}
 
