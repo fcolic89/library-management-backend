@@ -136,6 +136,9 @@ async function findUser(req, res){
         if(!req.query.role) req.query.role = ['ADMIN', 'LIBRARIAN', 'REGULAR'];
         else req.query.role = req.query.role.split(',');
 
+        let limit = Number(req.query.size)+1;
+        let skip = (Number(req.query.page)-1)*Number(req.query.size);
+
         let userList = await User.find({
             username: new RegExp(req.query.username, 'i'),
             email: new RegExp(req.query.email, 'i'),
@@ -143,9 +146,15 @@ async function findUser(req, res){
             lastname: new RegExp(req.query.lastname, 'i'),
             role: {$in: req.query.role} 
         })
-            .limit(req.query.size)
-            .skip((req.query.page-1)*req.query.size)
+            .limit(limit)
+            .skip(skip)
             .sort({username: 1});
+
+        let hasNext = false;
+        if(userList.length === limit){
+            hasNext = true;
+            userList.splice(userList.length-1, 1);
+        }
 
         let filteredList = [];
         userList.forEach(user => {
@@ -156,7 +165,10 @@ async function findUser(req, res){
             if(add) filteredList.push(user);
         });
 
-        res.send(filteredList);
+        res.send({
+            hasNext: hasNext,
+            users: filteredList
+        });
     }catch(err){
         res.status(500).send('An error occurred while getting users! Error: ' + err);
     }

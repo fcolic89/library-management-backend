@@ -100,14 +100,17 @@ async function findBookById(req, res){
 
 async function filterBooks(req, res){
     try{
+        let limit = Number(req.query.size)+1;
+        let skip = (Number(req.query.page)-1)*Number(req.query.size);
+
         let bookList = []
         if(req.query.genre === undefined || req.query.genre === ''){
             bookList = await Book.find({
                 title: new RegExp(req.query.title, 'i'),
                 author: new RegExp(req.query.author, 'i'),
             })
-                .limit(req.query.size)
-                .skip((req.query.page-1)*req.query.size)
+                .limit(limit)
+                .skip(skip)
                 .sort({title: 1});
         }else{
             bookList = await Book.find({
@@ -115,9 +118,15 @@ async function filterBooks(req, res){
                 author: new RegExp(req.query.author, 'i'),
                 genre: {$in: req.query.genre.split(',')} 
             })
-                .limit(req.query.size)
-                .skip((req.query.page-1)*req.query.size)
+                .limit(limit)
+                .skip(skip)
                 .sort({title: 1});
+        }
+
+        let hasNext = false;
+        if(bookList.length === limit){
+            hasNext = true;
+            bookList.splice(bookList.length-1, 1);
         }
 
         let returnList = []
@@ -139,7 +148,10 @@ async function filterBooks(req, res){
             });
         });
         
-        res.send(returnList);
+        res.send({
+            hasNext: hasNext,
+            books: returnList
+        });
     }catch(err){
         res.status(500).json({message: 'An error occurred while finding book! Error: ' + err.message});
     }
@@ -223,18 +235,29 @@ async function editComment(req, res){
 
 async function findComments(req, res){
     try{
+        let limit = Number(req.query.size)+1;
+        let skip = (Number(req.query.page)-1)*Number(req.query.size);
+
         let commentList = [];
         if(req.query.replies){
             commentList = await Comment.find({ bookId: req.params.bookId, parentCommentId: req.query.replies})
-                .limit(req.query.size)
-                .skip((req.query.page-1)*req.query.size);
+                .limit(limit)
+                .skip(skip);
         }else{
             commentList = await Comment.find({ bookId: req.params.bookId, parentCommentId: null })
-                .limit(req.query.size)
-                .skip((req.query.page-1)*req.query.size);
+                .limit(limit)
+                .skip(skip);
+        }
+        let hasNext = false;
+        if(commentList.length === limit){
+            hasNext = true;
+            commentList.splice(commentList.length-1, 1);
         }
 
-        res.send(commentList);
+        res.send({
+            hasNext: hasNext,
+            comments: commentList
+        });
     }catch(err){
         res.status(500).json({message: 'An error occurred while getting comments! Error: ' + err.message});
     }
@@ -242,12 +265,24 @@ async function findComments(req, res){
 
 async function getGenre(req, res){
     try{
+        let limit = Number(req.query.size)+1;
+        let skip = (Number(req.query.page)-1)*Number(req.query.size);
+
         let genreList = [];
         genreList = await Genre.find()
-            .limit(req.params.size)
-            .skip((req.params.page-1)*req.params.size);
+            .limit(limit)
+            .skip(skip);
 
-        res.send(genreList);
+        let hasNext = false;
+        if(genreList.length === limit){
+            hasNext = true;
+            genreList.splice(genreList.length-1, 1);
+        }
+
+        res.send({
+            hasNext: hasNext,
+            genres: genreList
+        });
     }catch(err){
         res.status(500).json({message: 'An error occurred while getting genres! Error: ' + err.message});
     }
