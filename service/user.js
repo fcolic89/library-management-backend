@@ -3,6 +3,7 @@ const Checkout = require('../database/models/checkOutModel');
 const Comment = require('../database/models/commentModel');
 const dbConnection = require('../database/db');
 const bcrypt = require('bcrypt');
+const authService = require('./auth');
 
 async function saveUser(req, res) {
     try{
@@ -45,11 +46,9 @@ async function deleteUser(req, res){
         if(!deleteCheckouts) throw new Error(`Could not find checkouts with user id: ${req.params.id}`);
 
         const comments = await Comment.find({ author: user.username });
-        if(comments !== []){
-            comments.forEach(c => async function(){
-                c.author = '[deleted]';
-                await c.save({session});
-            });
+        for(const c of comments){
+            c.author = '[deleted]';
+            await c.save({session});
         }
 
         await session.commitTransaction();
@@ -66,7 +65,8 @@ async function updateUser(req, res){
     const session = await dbConnection.startSession();
     try{
         const user = await User.findOne({_id: req.user.id});
-        var usernameChange = req.body.username !== user.username;
+        let usernameChange = req.body.username !== user.username;
+        let oldUsername = ''+user.username;
 
         user.firstname = req.body.firstname;
         user.lastname = req.body.lastname;
@@ -76,36 +76,28 @@ async function updateUser(req, res){
         if(req.body.email !== user.email){
             let tmpUser = await User.findOne({email: req.body.email});
             if(tmpUser && user._id !== tmpUser._id){
-                return res.status(400).send(`User with email: ${req.body.email} already exists!`);
+                return res.status(400).json({message: `User with email: ${req.body.email} already exists!`});
             }
         }
 
+        session.startTransaction();
+        
         if(usernameChange){
-            tmpUser = await User.findOne({username: req.body.username});
-            if(tmpUser && user._id !== tmpUser._id){
-                return res.status(400).send(`User with username: ${req.body.username} already exists!`);
-            }
-            session.startTransaction();
-
-            const comments = await Comment.find({ author: user.username });
-            comments.forEach(c => async function(){
-                c.author = req.body.username;
+            const comments = await Comment.find({ author: oldUsername });
+            for(const c of comments){
+                c.author = user.username;
                 await c.save({session});
-            })
+            }
         }
 
         await user.save({session});
-        if(usernameChange) await session.commitTransaction();
+        await session.commitTransaction();
 
-        res.send({
-            firstname: user.firstname,
-            lastname: user.lastname,
-            username: user.username,
-            email: user.email
-        })
+        let token = authService.generateToken(user._id, user.username, user.role, user.canComment, user.takeBook);
+        res.json({'jwt': token});
     }catch(err){
-        if(usernameChange) await session.abortTransaction();
-        res.status(500).send('An error occurred while updating user information!');
+        await session.abortTransaction();
+        res.status(500).json({message: 'An error occurred while updating user information!'});
     }finally{
         session.endSession();
     }
