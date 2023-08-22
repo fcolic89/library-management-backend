@@ -7,7 +7,7 @@ const checkOutSchema = new Schema({
     book: {type: Schema.Types.ObjectId, ref: 'Book', required: true},
     fine: {type: Number, default: 0},
     returned: {type: Boolean, default: false}
-}, {timestamps: true});
+}, { timestamps: true, optimisticConcurrency: true});
 
 const Checkout = model('Checkout', checkOutSchema);
 module.exports = Checkout;

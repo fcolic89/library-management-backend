@@ -9,7 +9,7 @@ const commentSchema = new Schema({
     replies: {type: Boolean, default: false},
     edited: {type: Boolean, deafult: false},
     comment: {type: String},
-}, {timestamps: true});
+}, { timestamps: true, optimisticConcurrency: true });
 
 const Comment = model('Comment', commentSchema);
 module.exports = Comment;

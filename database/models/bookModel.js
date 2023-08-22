@@ -15,7 +15,7 @@ const bookSchema = new Schema({
     imageUrl: {type: String},
     description: {type: String, required: true},
     genre: [{type: String}]
-});
+}, { optimisticConcurrency: true });
 
 const Book = model('Book', bookSchema);
 module.exports = Book;

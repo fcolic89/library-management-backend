@@ -10,7 +10,7 @@ const userSchema = new Schema({
     role: {type: String, enum: ['ADMIN', 'LIBRARIAN', 'REGULAR'], default: 'REGULAR'},
     canComment: {type: Boolean, default: true},
     takeBook: {type: Boolean, default: true}
-});
+}, { optimisticConcurrency: true });
 
 const User = model('User', userSchema);
 module.exports = User;
