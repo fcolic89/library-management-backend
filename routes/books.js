@@ -93,7 +93,7 @@ router.put('/comment/:commentId', [auth.authentication, auth.authorization2([aut
 });
 
 router.get('/comment/:bookId', [auth.authentication, auth.authorization2([auth.librarian, auth.regular])], (req, res) => {
-    if(!req.query.size || !req.query.page) return res.status(400).send('Page number of page size is not defined');
+    if(!req.query.size || !req.query.page) return res.status(400).json({message: 'Page number of page size is not defined'});
     bookService.findComments(req, res);
 });
 

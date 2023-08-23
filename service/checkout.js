@@ -8,13 +8,13 @@ async function checkoutBook(req, res){
     try{
         const book = await Book.findOne({ _id: req.body.bookId });
         if(!book){ 
-            return res.status(404).send(`Book with id ${req.body.bookId} not found!`);
+            return res.status(404).json({message: `Book with id ${req.body.bookId} not found!`});
         }else if(book.quantityCurrent === 0){ 
-            return res.status(403).send('No more copies available!');
+            return res.status(403).json({message: 'No more copies available!'});
         }
 
         const fined = await Checkout.findOne({ user: req.user.id, fine: {$gt: 0}, returned: false });
-        if(fined) return res.status(403).send('Cannot chekout a book while an overdue book is not retured!');
+        if(fined) return res.status(403).json({message: 'Cannot chekout a book while an overdue book is not retured!'});
 
         const checkout = new Checkout({
             user: req.user.id,
@@ -29,10 +29,10 @@ async function checkoutBook(req, res){
 
         await session.commitTransaction();
 
-        res.send('Book checked out!');
+        res.json({message: 'Book checked out!'});
     }catch(err){
         await session.abortTransaction();
-        res.status(500).send('An error occurred while checking out a book! Error: ' + err.message);
+        res.status(500).json({message: 'An error occurred while checking out a book! Error: ' + err.message});
     }finally{
         session.endSession();
     }
@@ -42,7 +42,7 @@ async function returnBook(req, res){
     const session = await dbConnection.startSession();
     try{
         const checkout = await Checkout.findOne({ user: req.body.userId, book: req.body.bookId, returned: false });
-        if(!checkoutBook) return res.status(400).send('Checkout does not exist!');
+        if(!checkoutBook) return res.status(400).json({message: 'Checkout does not exist!'});
 
         const book = await Book.findOne({ _id: checkout.book });
 
@@ -246,7 +246,7 @@ async function myCheckouts(req, res){
         let skip = (Number(req.query.page)-1)*Number(req.query.size);
 
         const user = await User.findOne({username: req.user.username});
-        if(!user) return res.status(404).send(`User with username ${req.user.username} was not found!`);
+        if(!user) return res.status(404).json({message: `User with username ${req.user.username} was not found!`});
         
         let checkouts = [];
         const dateSort = req.query.dateRising || 1;

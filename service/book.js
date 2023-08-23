@@ -54,7 +54,7 @@ async function deleteBook(req, res){
 async function updateBook(req, res){
     try{
         const book = await Book.findOne({ _id: req.body._id});
-        if(!book) return res.status(404).send(`An error occurred while updating a book! Book with id ${req.body.id} does not exist.`);
+        if(!book) return res.status(404).json({message: `An error occurred while updating a book! Book with id ${req.body.id} does not exist.`});
         
         book.title = req.body.title;
         book.description = req.body.description;

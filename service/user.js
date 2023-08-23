@@ -32,10 +32,10 @@ async function deleteUser(req, res){
     const session = await dbConnection.startSession();
     try{
         const user = await User.findOne({ _id: req.params.id });
-        if(!user) return res.status(400).send('Cannot delete user! User does not exist!.');
+        if(!user) return res.status(400).json({message: 'Cannot delete user! User does not exist!.'});
 
         const checkouts = await Checkout.findOne({ userId: req.params.id, returned: false });
-        if(checkouts && checkouts.length !== 0) return res.status(400).send('Cannot delete user! User still has unreturned books.');
+        if(checkouts && checkouts.length !== 0) return res.status(400).json({message: 'Cannot delete user! User still has unreturned books.'});
 
         session.startTransaction();
 
@@ -107,7 +107,7 @@ async function findUserById(req, res){
     try{
         let user = await User.findOne({ _id: req.params.id});
         if(!user){
-            res.status(404).send(`User with id: ${req.params.id} not found!`);
+            res.status(404).json({message: `User with id: ${req.params.id} not found!`});
         }else{
             res.send({
                 id: user._id,
@@ -119,7 +119,7 @@ async function findUserById(req, res){
         }
 
     }catch(err){
-        res.status(500).send(`An error occurred while getting user with id: ${req.params.id}`)
+        res.status(500).json({message: `An error occurred while getting user with id: ${req.params.id}`})
     }
 }
 
@@ -162,7 +162,7 @@ async function findUser(req, res){
             users: filteredList
         });
     }catch(err){
-        res.status(500).send('An error occurred while getting users! Error: ' + err);
+        res.status(500).json({message: 'An error occurred while getting users! Error: ' + err});
     }
 }
 
@@ -180,7 +180,7 @@ async function getUserInformation(req, res){
             });
         }
     }catch(err){
-        res.status(500).send(`An error occurred while getting user with id: ${req.user.id}`)
+        res.status(500).json({message: `An error occurred while getting user with id: ${req.user.id}`})
     }
 }
 

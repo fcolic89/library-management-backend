@@ -47,13 +47,13 @@ router.delete('/:id', [auth.authentication, auth.authorization2([auth.admin])], 
 router.put('/', [auth.authentication, auth.authorization2([auth.admin, auth.librarian, auth.regular])], (req, res) => {
     const result = updateSchema.validate(req.body);
     if(result.error){
-        return res.status(400).send('Missing information!');
+        return res.status(400).json({message: 'Missing information!'});
     }
     userService.updateUser(req, res);
 });
 
 router.get('/find', [auth.authentication, auth.authorization2([auth.admin])], (req, res) => {
-    if(!req.query.size || !req.query.page) return res.status(400).send('Page number of page size is not defined');
+    if(!req.query.size || !req.query.page) return res.status(400).json({message: 'Page number of page size is not defined'});
     userService.findUser(req, res);
 });
 
@@ -68,14 +68,14 @@ router.get('/profile', [auth.authentication, auth.authorization2([auth.admin, au
 
 router.put('/priv/comment', [auth.authentication, auth.authorization2([auth.admin])], (req, res) =>{
     const { error } = changePrivSchema.validate(req.body);
-    if(error) return res.status(400).join({message: error});
+    if(error) return res.status(400).json({message: error});
 
     userService.changeCommentPriv(req, res);
 });
 
 router.put('/priv/book', [auth.authentication, auth.authorization2([auth.admin])], (req, res) =>{
     const { error } = changePrivSchema.validate(req.body);
-    if(error) return res.status(400).join({message: error});
+    if(error) return res.status(400).json({message: error});
 
     userService.changeTakeBookPriv(req, res);
 });
