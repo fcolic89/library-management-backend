@@ -25,6 +25,12 @@ const changePrivSchema = Joi.object({
 });
 
 router.post('/register', (req, res) => {
+    let auth = req.header('Authorization');
+    if(auth) return res.status(401).send('Access denied. User is already logged in!');
+
+    let token = auth.split(" ")[1];
+    if(token) return res.status(401).send('Access denied. User is already logged in!');
+
     const result = registerSchema.validate(req.body);
     if(result.error || req.body.role !== auth.regular){
         return res.status(400).send(result.error);
