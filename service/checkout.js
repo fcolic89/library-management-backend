@@ -13,25 +13,38 @@ async function checkoutBook(req, res){
             return res.status(403).json({message: 'No more copies available!'});
         }
 
-        const fined = await Checkout.findOne({ user: req.user.id, fine: {$gt: 0}, returned: false });
+        const fined = await Checkout.findOne({ user: req.body.userId, fine: {$gt: 0}, status: 'CHECKEDOUT' });
         if(fined) return res.status(403).json({message: 'Cannot chekout a book while an overdue book is not retured!'});
+        
+        if(req.body.reserved){
+            const checkout = await Checkout.findOne({ _id: req.body.checkoutId });
+            if(!checkout) return res.status(404).json({ message: `Checkout with id ${req.body.checkoutId} not found!`});
 
-        const checkout = new Checkout({
-            user: req.user.id,
-            book: req.body.bookId
-        });
-        session.startTransaction();
+            checkout.status = 'CHECKEDOUT';
+            await checkout.save();
 
-        book.quantityCurrent = book.quantityCurrent - 1;
-        await book.save({session});
+            res.json({message: 'Book checked out!'});
+        }else{
+            const checkout = new Checkout({
+                user: req.body.userId,
+                book: req.body.bookId,
+                status: 'CHECKEDOUT'
+            });
 
-        await checkout.save({session});
+            session.startTransaction();
 
-        await session.commitTransaction();
+            book.quantityCurrent = book.quantityCurrent - 1;
+            await book.save({session});
 
-        res.json({message: 'Book checked out!'});
+            await checkout.save({session});
+
+            await session.commitTransaction();
+
+            res.json({message: 'Book checked out!'});
+        }
+
     }catch(err){
-        await session.abortTransaction();
+        if(!req.body.reserved) await session.abortTransaction();
         res.status(500).json({message: 'An error occurred while checking out a book! Error: ' + err.message});
     }finally{
         session.endSession();
@@ -41,7 +54,7 @@ async function checkoutBook(req, res){
 async function returnBook(req, res){
     const session = await dbConnection.startSession();
     try{
-        const checkout = await Checkout.findOne({ user: req.body.userId, book: req.body.bookId, returned: false });
+        const checkout = await Checkout.findOne({ user: req.body.userId, book: req.body.bookId, status: 'CHECKEDOUT' });
         if(!checkoutBook) return res.status(400).json({message: 'Checkout does not exist!'});
 
         const book = await Book.findOne({ _id: checkout.book });
@@ -51,7 +64,7 @@ async function returnBook(req, res){
         book.quantityCurrent = book.quantityCurrent + 1;
         await book.save({session});
 
-        checkout.returned = true;
+        checkout.status = 'RETURNED';
         await checkout.save({session});
 
         await session.commitTransaction();
@@ -64,28 +77,75 @@ async function returnBook(req, res){
     }
 }
 
+async function reserveBook(req, res){
+    const session = await dbConnection.startSession();
+    try{
+        const book = await Book.findOne({ _id: req.body.bookId });
+        if(!book){ 
+            return res.status(404).json({message: `Book with id ${req.body.bookId} not found!`});
+        }else if(book.quantityCurrent === 0){ 
+            return res.status(403).json({message: 'No more copies available!'});
+        }
+
+        const reservation = await Checkout.findOne({ 
+            user: req.user.id, 
+            book: req.body.bookId,
+            status: { $in: ['PENDING', 'CHECKEDOUT']}
+        });
+
+        if(reservation) return res.status(403).json({message: 'Book is already checkout or reserved!'});
+
+        const fined = await Checkout.findOne({ 
+            user: req.user.id, 
+            fine: {$gt: 0}, 
+            status: 'CHECKEDOUT' });
+        if(fined) return res.status(403).json({message: 'Cannot chekout a book while an overdue book is not retured!'});
+
+        const checkout = new Checkout({
+            user: req.user.id,
+            book: req.body.bookId
+        });
+        
+        session.startTransaction();
+
+        book.quantityCurrent = book.quantityCurrent - 1;
+        await book.save({session});
+
+        await checkout.save({session});
+
+        await session.commitTransaction();
+
+        res.json({message: 'Book reserved!'});
+    }catch(err){
+        await session.abortTransaction();
+        res.status(500).json({message: 'An error occurred while checking out a book! Error: ' + err.message});
+    }finally{
+        session.endSession();
+    }
+}
+
 async function findCheckouts(req, res){
     try{
         let limit = Number(req.query.size)+1;
         let skip = (Number(req.query.page)-1)*Number(req.query.size);
 
         let checkouts = [];
-        if(req.query.returned){
+        if(req.query.status){
             checkouts = await Checkout.find({
-                returned: req.query.returned
+                status: req.query.status
             })
                 .limit(limit)
                 .skip(skip)
                 .populate('user', 'username')
                 .populate('book', 'title')
-                .select(['user', 'book', 'fine', 'createdAt', 'returned']);
+                .select(['_id', 'user', 'book', 'fine', 'createdAt', 'status']);
         }else{
             checkouts = await Checkout.find()
                 .limit(limit)
                 .skip(skip)
                 .populate('user', 'username')
                 .populate('book', 'title')
-                .select(['user', 'book', 'fine', 'createdAt', 'returned']);
+                .select(['_id', 'user', 'book', 'fine', 'createdAt', 'status']);
         }
 
         let hasNext = false;
@@ -155,17 +215,17 @@ async function userCheckouts(req, res){
             fined.$gt = -1;
         }
 
-        if(req.query.returned){
+        if(req.query.status){
             checkouts = await Checkout.find({ 
                 user: user._id,
-                returned: req.query.returned,
+                status: req.query.status,
                 fine: fined
             })
                 .limit(limit)
                 .skip(skip)
                 .populate('user', 'username')
                 .populate('book', 'title')
-                .select(['user', 'book', 'fine', 'createdAt', 'returned'])
+                .select(['_id', 'user', 'book', 'fine', 'createdAt', 'status'])
                 .sort({createdAt: dateSort});
         }else{
             checkouts = await Checkout.find({ 
@@ -176,7 +236,7 @@ async function userCheckouts(req, res){
                 .skip(skip)
                 .populate('user', 'username')
                 .populate('book', 'title')
-                .select(['user', 'book', 'fine', 'createdAt', 'returned'])
+                .select(['_id', 'user', 'book', 'fine', 'createdAt', 'status'])
                 .sort({createdAt: dateSort});
         }
 
@@ -202,16 +262,16 @@ async function bookCheckouts(req, res){
 
         const dateSort = req.query.dateRising || 1;
         let checkouts = [];
-        if(req.query.returned){
+        if(req.query.status){
             checkouts = await Checkout.find({
                 book: req.params.bookId,
-                returned: req.query.returned
+                status: req.query.status
             })
                 .limit(limit)
                 .skip(skip)
                 .populate('user', 'username')
                 .populate('book', 'title')
-                .select(['user', 'book', 'fine', 'createdAt', 'returned'])
+                .select(['_id', 'user', 'book', 'fine', 'createdAt', 'status'])
                 .sort({createdAt: dateSort});
         }else{
             checkouts = await Checkout.find({
@@ -221,7 +281,7 @@ async function bookCheckouts(req, res){
                 .skip(skip)
                 .populate('user', 'username')
                 .populate('book', 'title')
-                .select(['user', 'book', 'fine', 'createdAt', 'returned'])
+                .select(['_id', 'user', 'book', 'fine', 'createdAt', 'status'])
                 .sort({createdAt: dateSort});
         }
         
@@ -260,17 +320,17 @@ async function myCheckouts(req, res){
             fined.$gt = -1;
         }
 
-        if(req.query.returned){
+        if(req.query.status){
             checkouts = await Checkout.find({ 
                 user: user._id,
-                returned: req.query.returned,
+                status: req.query.status,
                 fine: fined
             })
                 .limit(limit)
                 .skip(skip)
                 .populate('user', 'username')
                 .populate('book', 'title')
-                .select(['user', 'book', 'fine', 'createdAt', 'returned'])
+                .select(['_id', 'user', 'book', 'fine', 'createdAt', 'status'])
                 .sort({createdAt: dateSort});
         }else{
             checkouts = await Checkout.find({ 
@@ -281,7 +341,7 @@ async function myCheckouts(req, res){
                 .skip(skip)
                 .populate('user', 'username')
                 .populate('book', 'title')
-                .select(['user', 'book', 'fine', 'createdAt', 'returned'])
+                .select(['_id', 'user', 'book', 'fine', 'createdAt', 'status'])
                 .sort({createdAt: dateSort});
         }
 
@@ -303,6 +363,7 @@ async function myCheckouts(req, res){
 module.exports = {
     checkoutBook,
     returnBook,
+    reserveBook,
     findCheckouts,
     agregateFines,
     userCheckouts,
