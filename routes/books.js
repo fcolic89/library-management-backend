@@ -65,29 +65,27 @@ router.get('/filter', (req, res) => {
 });
 
 router.put('/', [auth.authentication, auth.authorization2([auth.librarian])],(req, res) => {
-    const result = updateSchema.validate(req.body);
-    if(result.error){
-        return res.status(400).send(result.error);
-    }
+    const {error} = updateSchema.validate(req.body);
+    if(error) return res.status(400).json({message: 'Invalid input!', error: error});
     bookService.updateBook(req, res);
 });
 
 router.post('/comment/:bookId', [auth.authentication, auth.authorization2([auth.librarian,auth.regular])], (req, res) => {
     const {error} = commentSchema.validate(req.body);
-    if(error) return res.status(400).send(error);
+    if(error) return res.status(400).json({message: 'Invalid input!', error: error});
 
     bookService.addComment(req, res);
 });
 router.post('/comment-reply/:bookId', [auth.authentication, auth.authorization2([auth.librarian, auth.regular])], (req, res) => {
     const {error} = replyCommentSchema.validate(req.body);
-    if(error) return res.status(400).send(error);
+    if(error) return res.status(400).json({message: 'Invalid input!', error: error});
 
     bookService.replyComment(req, res);
 });
 
 router.put('/comment/:commentId', [auth.authentication, auth.authorization2([auth.librarian, auth.regular])], (req, res) => {
     const {error} = commentSchema.validate(req.body);
-    if(error) return res.status(400).send(error);
+    if(error) return res.status(400).json({message: 'Invalid input!', error: error});
 
     bookService.editComment(req, res);
 });

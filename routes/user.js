@@ -63,6 +63,12 @@ router.get('/find', [auth.authentication, auth.authorization2([auth.admin])], (r
     userService.findUser(req, res);
 });
 
+router.get('/findRegular', [auth.authentication, auth.authorization2([auth.librarian])], (req, res) => {
+    if(!req.query.size || !req.query.page) return res.status(400).json({message: 'Page number of page size is not defined'});
+    req.query.role = 'REGULAR,';
+    userService.findUser(req, res);
+});
+
 router.put('/pwd-change', [auth.authentication, auth.authorization2([auth.admin, auth.librarian, auth.regular])], (req, res) => {
     if(!req.body.password) return res.status(400).json({message: 'Missing password!'});
     userService.changePassword(req, res);
@@ -74,14 +80,14 @@ router.get('/profile', [auth.authentication, auth.authorization2([auth.admin, au
 
 router.put('/priv/comment', [auth.authentication, auth.authorization2([auth.admin])], (req, res) =>{
     const { error } = changePrivSchema.validate(req.body);
-    if(error) return res.status(400).json({message: error});
+    if(error) return res.status(400).json({message: 'Invalid information!', error: error});
 
     userService.changeCommentPriv(req, res);
 });
 
 router.put('/priv/book', [auth.authentication, auth.authorization2([auth.admin])], (req, res) =>{
     const { error } = changePrivSchema.validate(req.body);
-    if(error) return res.status(400).json({message: error});
+    if(error) return res.status(400).json({message: 'Invalid information!', error: error});
 
     userService.changeTakeBookPriv(req, res);
 });

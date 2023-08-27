@@ -9,15 +9,15 @@ const returnBookSchema = Joi.object({
     bookId: Joi.string().required()
 });
 const checkoutBookSchema = Joi.object({
-    checkoutId: Joi.string().optional(),
+    checkoutId: Joi.string().allow(null).optional(),
     userId: Joi.string().required(),
     bookId: Joi.string().required(),
-    reserved: Joi.bool().optional()
+    reserved: Joi.bool().allow(null).optional()
 });
 
 router.post('/', [auth.authentication, auth.authorization2([auth.librarian])], (req, res) => {
     const {error} = checkoutBookSchema.validate(req.body);
-    if(error) return res.status(400).send(error);
+    if(error) return res.status(400).json({message: 'Invalid information!', error: error});
 
     checkoutService.checkoutBook(req, res);
 });
@@ -29,7 +29,7 @@ router.post('/reserve', [auth.authentication, auth.authorization2([auth.regular]
 
 router.put('/return', [auth.authentication, auth.authorization2([auth.librarian])], (req, res) => {
     const {error} = returnBookSchema.validate(req.body);
-    if(error) return res.status(400).send(error);
+    if(error) return res.status(400).json({message: 'Invalid information!', error: error});
 
     checkoutService.returnBook(req, res);
 });
