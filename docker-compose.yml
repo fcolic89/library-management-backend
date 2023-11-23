@@ -32,6 +32,8 @@ services:
       dockerfile: Dockerfile
     restart: always
     container_name: lib-man-service
+    environment:
+      - MONGODB_URI=mongodb://admin:admin@mongo:27017/library?directConnection=true&authSource=library&replicaSet=replica-set-name&retryWrites=true
     ports:
       - "8080:8080"
     networks:
