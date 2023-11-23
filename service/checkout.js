@@ -19,13 +19,16 @@ async function checkoutBook(req, res){
             status: 'CHECKEDOUT' 
         });
         if(fined) return res.status(403).json({message: 'Cannot chekout a book while an overdue book is not retured!'});
+
+        const checkoutStatus = ['CHECKEDOUT'];
+        if(!req.body.reserved) checkoutStatus.push('PENDING');
         
         const reservation = await Checkout.findOne({ 
             user: req.body.userId, 
             book: req.body.bookId,
-            status: { $in: ['PENDING', 'CHECKEDOUT']}
+            status: { $in: checkoutStatus }
         });
-        if(reservation) return res.status(403).json({message: 'Book is already checkout or reserved by user!'});
+        if(reservation) return res.status(403).json({message: 'Book is already checked out or reserved by user!'});
 
         if(req.body.reserved){
             const checkout = await Checkout.findOne({ _id: req.body.checkoutId });
