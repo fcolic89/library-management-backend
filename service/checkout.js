@@ -167,7 +167,7 @@ async function findCheckouts(req, res) {
     let hasNext = false;
     if (checkouts.length === limit) {
       hasNext = true;
-      checkouts.splice(genreList.length - 1, 1);
+      checkouts.splice(checkouts.length - 1, 1);
     }
 
     res.json({
@@ -201,7 +201,7 @@ async function agregateFines(req, res) {
     let hasNext = false;
     if (fines.length === limit) {
       hasNext = true;
-      fines.splice(genreList.length - 1, 1);
+      fines.splice(fines.length - 1, 1);
     }
 
     res.send({
@@ -262,7 +262,7 @@ async function userCheckouts(req, res) {
     let hasNext = false;
     if (checkouts.length === limit) {
       hasNext = true;
-      checkouts.splice(genreList.length - 1, 1);
+      checkouts.splice(checkouts.length - 1, 1);
     }
 
     res.json({
@@ -308,7 +308,7 @@ async function bookCheckouts(req, res) {
     let hasNext = false;
     if (checkouts.length === limit) {
       hasNext = true;
-      checkouts.splice(genreList.length - 1, 1);
+      checkouts.splice(checkouts.length - 1, 1);
     }
 
     res.json({
@@ -369,7 +369,7 @@ async function myCheckouts(req, res) {
     let hasNext = false;
     if (checkouts.length === limit) {
       hasNext = true;
-      checkouts.splice(genreList.length - 1, 1);
+      checkouts.splice(checkouts.length - 1, 1);
     }
 
     res.json({
