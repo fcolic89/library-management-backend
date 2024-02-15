@@ -24,7 +24,6 @@ router.get('/find/:id', (req, res) => {
 });
 
 router.get('/filter', (req, res) => {
-    if(!req.query.size || !req.query.page) return res.status(400).send('Page number of page size is not defined');
     bookService.filterBooks(req, res);
 });
 
@@ -55,12 +54,10 @@ router.put('/comment/:commentId', [authentication, authorization(librarian, regu
 });
 
 router.get('/comment/:bookId', [authentication, authorization(librarian, regular)], (req, res) => {
-    if(!req.query.size || !req.query.page) return res.status(400).json({message: 'Page number of page size is not defined'});
     bookService.findComments(req, res);
 });
 
 router.get('/genre', [authentication, authorization(librarian, regular)], (req, res) => {
-    if(!req.query.size || !req.query.page) return res.status(400).json({message: 'Page number of page size is not defined'});
     bookService.getGenre(req, res);
 });
 

@@ -25,27 +25,22 @@ router.put('/return', [authentication, authorization(librarian)], (req, res) => 
 });
 
 router.get('/', [authentication, authorization(librarian)], (req, res) => {
-    if(!req.query.size || !req.query.page) return res.status(400).json({message: 'Page number of page size is not defined'});
     checkoutService.findCheckouts(req, res);
 });
 
 router.get('/fines', [authentication, authorization(librarian)], (req, res) => {
-    if(!req.query.size || !req.query.page) return res.status(400).json({message: 'Page number of page size is not defined'});
     checkoutService.agregateFines(req, res);
 });
 
 router.get('/user/:username', [authentication, authorization(librarian)], (req, res) => {
-    if(!req.query.size || !req.query.page) return res.status(400).json({message: 'Page number of page size is not defined'});
     checkoutService.userCheckouts(req, res);
 });
 
 router.get('/book/:bookId', [authentication, authorization(librarian)], (req, res) => {
-    if(!req.query.size || !req.query.page) return res.status(400).json({message: 'Page number of page size is not defined'});
     checkoutService.bookCheckouts(req, res);
 });
 
 router.get('/self', [authentication, authorization(regular)], (req, res) => {
-    if(!req.query.size || !req.query.page) return res.status(400).json({message: 'Page number of page size is not defined'});
     checkoutService.myCheckouts(req, res);
 });
 

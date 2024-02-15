@@ -139,8 +139,9 @@ async function reserveBook(req, res){
 
 async function findCheckouts(req, res){
     try{
-        let limit = Number(req.query.size)+1;
-        let skip = (Number(req.query.page)-1)*Number(req.query.size);
+        const { page = 1, size = 10 } = req.query;
+        let limit = Number(size)+1;
+        let skip = (Number(page)-1)*Number(size);
 
         let checkouts = [];
         if(req.query.status){
@@ -178,8 +179,9 @@ async function findCheckouts(req, res){
 
 async function agregateFines(req, res){
     try{
-        let limit = Number(req.query.size)+1;
-        let skip = (Number(req.query.page)-1)*Number(req.query.size);
+        const { page = 1, size = 10 } = req.query;
+        let limit = Number(size)+1;
+        let skip = (Number(page)-1)*Number(size);
 
         const fines = await Checkout.aggregate()
             .limit(limit)
@@ -210,8 +212,9 @@ async function agregateFines(req, res){
 
 async function userCheckouts(req, res){
     try{
-        let limit = Number(req.query.size)+1;
-        let skip = (Number(req.query.page)-1)*Number(req.query.size);
+        const { page = 1, size = 10 } = req.query;
+        let limit = Number(size)+1;
+        let skip = (Number(page)-1)*Number(size);
 
         const user = await User.findOne({username: req.params.username});
         if(!user) return res.status(404).json({message: `User with username ${req.params.username} was not found!`});
@@ -270,8 +273,9 @@ async function userCheckouts(req, res){
 
 async function bookCheckouts(req, res){
     try{
-        let limit = Number(req.query.size)+1;
-        let skip = (Number(req.query.page)-1)*Number(req.query.size);
+        const { page = 1, size = 10 } = req.query;
+        let limit = Number(size)+1;
+        let skip = (Number(page)-1)*Number(size);
 
         const dateSort = req.query.dateRising || 1;
         let checkouts = [];
@@ -315,8 +319,9 @@ async function bookCheckouts(req, res){
 
 async function myCheckouts(req, res){
     try{
-        let limit = Number(req.query.size)+1;
-        let skip = (Number(req.query.page)-1)*Number(req.query.size);
+        const { page = 1, size = 10 } = req.query;
+        let limit = Number(size)+1;
+        let skip = (Number(page)-1)*Number(size);
 
         const user = await User.findOne({username: req.user.username});
         if(!user) return res.status(404).json({message: `User with username ${req.user.username} was not found!`});

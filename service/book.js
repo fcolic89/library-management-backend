@@ -98,23 +98,24 @@ async function findBookById(req, res){
 
 async function filterBooks(req, res){
     try{
-        let limit = Number(req.query.size)+1;
-        let skip = (Number(req.query.page)-1)*Number(req.query.size);
+        const { title, author, genre, size = 10, page = 1 } = req.query;
+        let limit = Number(size)+1;
+        let skip = (Number(page)-1)*Number(size);
 
         let bookList = []
-        if(req.query.genre === undefined || req.query.genre === ''){
+        if(genre === undefined || genre === ''){
             bookList = await Book.find({
-                title: new RegExp(req.query.title, 'i'),
-                author: new RegExp(req.query.author, 'i'),
+                title: new RegExp(title, 'i'),
+                author: new RegExp(author, 'i'),
             })
                 .limit(limit)
                 .skip(skip)
                 .sort({title: 1});
         }else{
             bookList = await Book.find({
-                title: new RegExp(req.query.title, 'i'),
-                author: new RegExp(req.query.author, 'i'),
-                genre: {$in: req.query.genre.split(',')} 
+                title: new RegExp(title, 'i'),
+                author: new RegExp(author, 'i'),
+                genre: {$in: genre.split(',')} 
             })
                 .limit(limit)
                 .skip(skip)
@@ -233,8 +234,9 @@ async function editComment(req, res){
 
 async function findComments(req, res){
     try{
-        let limit = Number(req.query.size)+1;
-        let skip = (Number(req.query.page)-1)*Number(req.query.size);
+        const { page = 1, size = 10 } = req.query;
+        let limit = Number(size)+1;
+        let skip = (Number(page)-1)*Number(size);
 
         let commentList = [];
         if(req.query.replies){
@@ -263,8 +265,9 @@ async function findComments(req, res){
 
 async function getGenre(req, res){
     try{
-        let limit = Number(req.query.size)+1;
-        let skip = (Number(req.query.page)-1)*Number(req.query.size);
+        const { page = 1, size = 10 } = req.query;
+        let limit = Number(size)+1;
+        let skip = (Number(page)-1)*Number(size);
 
         let genreList = [];
         genreList = await Genre.find()

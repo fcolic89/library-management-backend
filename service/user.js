@@ -126,8 +126,9 @@ async function findUser(req, res){
         if(!req.query.role) req.query.role = ['ADMIN', 'LIBRARIAN', 'REGULAR'];
         else req.query.role = req.query.role.split(',');
 
-        let limit = Number(req.query.size)+1;
-        let skip = (Number(req.query.page)-1)*Number(req.query.size);
+        const { page = 1, size = 10 } = req.query;
+        let limit = Number(size)+1;
+        let skip = (Number(page)-1)*Number(size);
 
         let userList = await User.find({
             username: new RegExp(req.query.username, 'i'),

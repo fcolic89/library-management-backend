@@ -34,12 +34,10 @@ router.put('/', [authentication, authorization(admin, librarian, regular)], (req
 });
 
 router.get('/find', [authentication, authorization(admin)], (req, res) => {
-    if(!req.query.size || !req.query.page) return res.status(400).json({message: 'Page number of page size is not defined'});
     userService.findUser(req, res);
 });
 
 router.get('/findRegular', [authentication, authorization(librarian)], (req, res) => {
-    if(!req.query.size || !req.query.page) return res.status(400).json({message: 'Page number of page size is not defined'});
     req.query.role = 'REGULAR,';
     userService.findUser(req, res);
 });
