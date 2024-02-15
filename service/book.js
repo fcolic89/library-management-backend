@@ -1,6 +1,4 @@
-const Book = require('../database/models/bookModel');
-const Comment = require('../database/models/commentModel');
-const Genre = require('../database/models/genreModel');
+const { Book, Comment, Genre } = require('../database/models');
 const dbConnection = require('../database/db');
 
 async function saveBook(req, res) {

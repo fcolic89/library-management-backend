@@ -1,6 +1,4 @@
-const Book = require('../database/models/bookModel');
-const Checkout = require('../database/models/checkOutModel');
-const User = require('../database/models/userModel');
+const { Book, Checkout, User, checkoutStatus } = require('../database/models');
 const dbConnection = require('../database/db');
 
 async function checkoutBook(req, res){
@@ -16,17 +14,17 @@ async function checkoutBook(req, res){
         const fined = await Checkout.findOne({ 
             user: req.body.userId, 
             fine: {$gt: 0}, 
-            status: 'CHECKEDOUT' 
+            status: checkoutStatus.checkedout
         });
         if(fined) return res.status(403).json({message: 'Cannot chekout a book while an overdue book is not retured!'});
 
-        const checkoutStatus = ['CHECKEDOUT'];
-        if(!req.body.reserved) checkoutStatus.push('PENDING');
+        const checkoutStatusList = [checkoutStatus.checkedout];
+        if(!req.body.reserved) checkoutStatus.push(checkoutStatus.pending);
         
         const reservation = await Checkout.findOne({ 
             user: req.body.userId, 
             book: req.body.bookId,
-            status: { $in: checkoutStatus }
+            status: { $in: checkoutStatusList }
         });
         if(reservation) return res.status(403).json({message: 'Book is already checked out or reserved by user!'});
 
@@ -34,7 +32,7 @@ async function checkoutBook(req, res){
             const checkout = await Checkout.findOne({ _id: req.body.checkoutId });
             if(!checkout) return res.status(404).json({ message: `Checkout with id ${req.body.checkoutId} not found!`});
 
-            checkout.status = 'CHECKEDOUT';
+            checkout.status = checkoutStatus.checkedout;
             await checkout.save();
 
             res.json({message: 'Book checked out!'});
@@ -42,7 +40,7 @@ async function checkoutBook(req, res){
             const checkout = new Checkout({
                 user: req.body.userId,
                 book: req.body.bookId,
-                status: 'CHECKEDOUT'
+                status: checkoutStatus.checkedout
             });
 
             session.startTransaction();
@@ -68,7 +66,7 @@ async function checkoutBook(req, res){
 async function returnBook(req, res){
     const session = await dbConnection.startSession();
     try{
-        const checkout = await Checkout.findOne({ user: req.body.userId, book: req.body.bookId, status: 'CHECKEDOUT' });
+        const checkout = await Checkout.findOne({ user: req.body.userId, book: req.body.bookId, status: checkoutStatus.checkedout });
         if(!checkoutBook) return res.status(400).json({message: 'Checkout does not exist!'});
 
         const book = await Book.findOne({ _id: checkout.book });
@@ -78,7 +76,7 @@ async function returnBook(req, res){
         book.quantityCurrent = book.quantityCurrent + 1;
         await book.save({session});
 
-        checkout.status = 'RETURNED';
+        checkout.status = checkoutStatus.returned;
         await checkout.save({session});
 
         await session.commitTransaction();
@@ -104,7 +102,7 @@ async function reserveBook(req, res){
         const reservation = await Checkout.findOne({ 
             user: req.user.id, 
             book: req.body.bookId,
-            status: { $in: ['PENDING', 'CHECKEDOUT']}
+            status: { $in: [ checkoutStatus.pending, checkoutStatus.checkedout ] },
         });
 
         if(reservation) return res.status(403).json({message: 'Book is already checkout or reserved!'});
@@ -112,7 +110,8 @@ async function reserveBook(req, res){
         const fined = await Checkout.findOne({ 
             user: req.user.id, 
             fine: {$gt: 0}, 
-            status: 'CHECKEDOUT' });
+            status: checkoutStatus.checkedout 
+        });
         if(fined) return res.status(403).json({message: 'Cannot chekout a book while an overdue book is not retured!'});
 
         const checkout = new Checkout({

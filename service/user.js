@@ -1,6 +1,4 @@
-const User = require('../database/models/userModel');
-const Checkout = require('../database/models/checkOutModel');
-const Comment = require('../database/models/commentModel');
+const { User, Checkout, Comment, userRoles } = require('../database/models');
 const dbConnection = require('../database/db');
 const bcrypt = require('bcrypt');
 const authService = require('./auth');
@@ -16,7 +14,7 @@ async function saveUser(req, res) {
             lastname: req.body.lastname,
             isDeleted: false
         });
-        if(req.body.role && req.body.role !== 'REGULAR'){
+        if(req.body.role && req.body.role !== userRoles.regular){
             user.role = req.body.role;
             user.canComment = false;
             user.takeBook = false;
