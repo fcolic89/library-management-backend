@@ -1,6 +1,5 @@
 const nodeCron = require('node-cron');
-const Checkout = require('../database/models/checkOutModel');
-const Book = require('../database/models/bookModel');
+const { Checkout, Book, checkoutStatus } = require('../database/models');
 const db = require('../database/db');
 
 const timeLimit = 2592000; //30 days
@@ -8,7 +7,7 @@ const timeLimit = 2592000; //30 days
 
 nodeCron.schedule('* 0 1 * * *', async function(){
     try{
-        const checkoutList = await Checkout.find({ status: 'CHECKEDOUT' });
+        const checkoutList = await Checkout.find({ status: checkoutStatus.checkedout });
         let takenOut = Math.floor(c.createdAt / 1000);
         let today = Math.floor(Date.now() / 1000);
         for(const c of checkoutList){ 
@@ -24,7 +23,7 @@ nodeCron.schedule('* 0 1 * * *', async function(){
 
 nodeCron.schedule('* 0 1 * * *', async function(){
     try{
-        const checkoutList = await Checkout.find({ status: 'PENDING' });
+        const checkoutList = await Checkout.find({ status: checkoutStatus.pending });
         let takenOut = Math.floor(c.createdAt / 1000);
         let today = Math.floor(Date.now() / 1000);
 
