@@ -3,18 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { regular, librarian } = require('../database/models').userRoles;
 const { authentication, authorization } = require('../middleware/auth');
-const Joi = require('joi');
-
-const returnBookSchema = Joi.object({
-    userId: Joi.string().required(),
-    bookId: Joi.string().required()
-});
-const checkoutBookSchema = Joi.object({
-    checkoutId: Joi.string().allow(null).optional(),
-    userId: Joi.string().required(),
-    bookId: Joi.string().required(),
-    reserved: Joi.bool().allow(null).optional()
-});
+const { checkoutBookSchema, returnBookSchema } = require('./joi');
 
 router.post('/', [authentication, authorization(librarian)], (req, res) => {
     const {error} = checkoutBookSchema.validate(req.body);

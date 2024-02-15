@@ -1,29 +1,9 @@
-const Joi = require('joi');
 const express = require('express');
 const router = express.Router();
 const userService = require('../service/user');
 const { regular, librarian, admin } = require('../database/models').userRoles;
 const { authentication, authorization } = require('../middleware/auth');
-
-const registerSchema = Joi.object({
-    username: Joi.string().min(3).required(),
-    password: Joi.string().min(3).required(),
-    email: Joi.string().required(),
-    firstname: Joi.string().required(),
-    lastname: Joi.string().required(),
-    role: Joi.string()
-});
-
-const updateSchema = Joi.object({
-    username: Joi.string().required(),
-    email: Joi.string().required(),
-    firstname: Joi.string().required(),
-    lastname: Joi.string().required()
-});
-
-const changePrivSchema = Joi.object({
-    id: Joi.string().required()
-});
+const { registerSchema, updateUserSchema, changePrivSchema } = require('./joi')
 
 router.post('/register', (req, res) => {
     const result = registerSchema.validate(req.body);
@@ -46,7 +26,7 @@ router.delete('/:id', [authentication, authorization(admin)], (req, res) => {
 });
 
 router.put('/', [authentication, authorization(admin, librarian, regular)], (req, res) => {
-    const result = updateSchema.validate(req.body);
+    const result = updateUserSchema.validate(req.body);
     if(result.error){
         return res.status(400).json({message: 'Missing information!'});
     }

@@ -1,47 +1,10 @@
-const Joi = require('joi');
 const express = require('express');
 const router = express.Router();
 const bookService = require('../service/book');
 const { regular, librarian } = require('../database/models').userRoles;
 const { authentication, authorization } = require('../middleware/auth');
+const {bookSchema, updateBookSchema, commentSchema, replyCommentSchema} = require('./joi');
 
-const bookSchema = Joi.object({
-    _id: Joi.string().allow(null, '').optional(),
-    title: Joi.string().min(3).required(),
-    description: Joi.string().min(3).required(),
-    author: Joi.string().required(),
-    dateOfPublishing: Joi.string().required(),
-    pageCount: Joi.number().required(),
-    rating: Joi.number().allow(null, '').optional(),
-    quantityMax: Joi.number().required(),
-    quantityCurrent: Joi.number().allow(null, 0).optional(),
-    genre: Joi.array().required(),
-    imageUrl: Joi.string().allow(null, '').optional()
-});
-
-const updateSchema = Joi.object({
-    _id: Joi.string().required(),
-    title: Joi.string().min(3).required(),
-    description: Joi.string().min(3).required(),
-    author: Joi.string().required(),
-    dateOfPublishing: Joi.string().required(),
-    pageCount: Joi.number().required(),
-    quantityMax: Joi.number().required(),
-    quantityCurrent: Joi.number().allow(null, 0).optional(),
-    genre: Joi.array().required(),
-    imageUrl: Joi.string().allow(null, '').optional(),
-    rating: Joi.number().allow(null, '').optional()
-});
-
-const commentSchema = Joi.object({
-    rating: Joi.number().required(),
-    comment: Joi.string().allow('', null).optional(),
-});
-
-const replyCommentSchema = Joi.object({
-    comment: Joi.string().required(),
-    parentCommentId: Joi.string().required()
-});
 
 
 router.post('/', [authentication, authorization(librarian)],(req, res) => {
@@ -66,7 +29,7 @@ router.get('/filter', (req, res) => {
 });
 
 router.put('/', [authentication, authorization(librarian)],(req, res) => {
-    const {error} = updateSchema.validate(req.body);
+    const {error} = updateBookSchema.validate(req.body);
     if(error) return res.status(400).json({message: 'Invalid input!', error: error});
     bookService.updateBook(req, res);
 });
