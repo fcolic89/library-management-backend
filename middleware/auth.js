@@ -1,8 +1,8 @@
 const jwt = require('jsonwebtoken');
-const User = require('../database/models/userModel');
+const { User } = require('../database/models');
 const privateKey = process.env.PRIVATE_KEY || 'supersecretandsuperprivatekey';
 
-function authentication(req, res, next){
+const authentication = (req, res, next) => {
     // Authorization: Bearer <token>
     let auth = req.header('Authorization');
     if(!auth) return res.status(401).json({message: 'Access denied. No token provided!'});
@@ -19,14 +19,7 @@ function authentication(req, res, next){
     }
 }
 
-// function authorization(roles){
-//     return async (req, res, next) => {
-//         if(!roles.includes(req.user.role)) return res.status(401).send('Access denied. User does not have permission for this resource!');
-//         next();
-//     }
-// }
-
-function authorization2(roles){
+const authorization = (...roles) => {
     return async (req, res, next) => {
         try{
             let user = await User.findOne({ _id: req.user.id });
@@ -39,12 +32,8 @@ function authorization2(roles){
             res.status(500).json({message: 'Could not authorize user! Error:' + err.message});
         }
     }
-}
+};
 module.exports = {
     authentication,
-    // authorization,
-    authorization2,
-    admin: 'ADMIN',
-    librarian: 'LIBRARIAN',
-    regular: 'REGULAR'
+    authorization,
 }

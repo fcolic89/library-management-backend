@@ -2,7 +2,8 @@ const Joi = require('joi');
 const express = require('express');
 const router = express.Router();
 const bookService = require('../service/book');
-const auth = require('../middleware/auth');
+const { regular, librarian } = require('../database/models').userRoles;
+const { authentication, authorization } = require('../middleware/auth');
 
 const bookSchema = Joi.object({
     _id: Joi.string().allow(null, '').optional(),
@@ -43,7 +44,7 @@ const replyCommentSchema = Joi.object({
 });
 
 
-router.post('/', [auth.authentication, auth.authorization2([auth.librarian])],(req, res) => {
+router.post('/', [authentication, authorization(librarian)],(req, res) => {
     const result = bookSchema.validate(req.body);
     if(result.error){
         return res.status(400).send(result.error);
@@ -51,7 +52,7 @@ router.post('/', [auth.authentication, auth.authorization2([auth.librarian])],(r
     bookService.saveBook(req, res);
 });
 
-router.delete('/:id', [auth.authentication, auth.authorization2([auth.librarian])], (req, res) => {
+router.delete('/:id', [authentication, authorization(librarian)], (req, res) => {
     bookService.deleteBook(req, res);
 });
 
@@ -64,48 +65,48 @@ router.get('/filter', (req, res) => {
     bookService.filterBooks(req, res);
 });
 
-router.put('/', [auth.authentication, auth.authorization2([auth.librarian])],(req, res) => {
+router.put('/', [authentication, authorization(librarian)],(req, res) => {
     const {error} = updateSchema.validate(req.body);
     if(error) return res.status(400).json({message: 'Invalid input!', error: error});
     bookService.updateBook(req, res);
 });
 
-router.post('/comment/:bookId', [auth.authentication, auth.authorization2([auth.librarian,auth.regular])], (req, res) => {
+router.post('/comment/:bookId', [authentication, authorization(librarian, regular)], (req, res) => {
     const {error} = commentSchema.validate(req.body);
     if(error) return res.status(400).json({message: 'Invalid input!', error: error});
 
     bookService.addComment(req, res);
 });
-router.post('/comment-reply/:bookId', [auth.authentication, auth.authorization2([auth.librarian, auth.regular])], (req, res) => {
+router.post('/comment-reply/:bookId', [authentication, authorization(librarian, regular)], (req, res) => {
     const {error} = replyCommentSchema.validate(req.body);
     if(error) return res.status(400).json({message: 'Invalid input!', error: error});
 
     bookService.replyComment(req, res);
 });
 
-router.put('/comment/:commentId', [auth.authentication, auth.authorization2([auth.librarian, auth.regular])], (req, res) => {
+router.put('/comment/:commentId', [authentication, authorization(librarian, regular)], (req, res) => {
     const {error} = commentSchema.validate(req.body);
     if(error) return res.status(400).json({message: 'Invalid input!', error: error});
 
     bookService.editComment(req, res);
 });
 
-router.get('/comment/:bookId', [auth.authentication, auth.authorization2([auth.librarian, auth.regular])], (req, res) => {
+router.get('/comment/:bookId', [authentication, authorization(librarian, regular)], (req, res) => {
     if(!req.query.size || !req.query.page) return res.status(400).json({message: 'Page number of page size is not defined'});
     bookService.findComments(req, res);
 });
 
-router.get('/genre', [auth.authentication, auth.authorization2([auth.librarian, auth.regular])], (req, res) => {
+router.get('/genre', [authentication, authorization(librarian, regular)], (req, res) => {
     if(!req.query.size || !req.query.page) return res.status(400).json({message: 'Page number of page size is not defined'});
     bookService.getGenre(req, res);
 });
 
-router.post('/genre', [auth.authentication, auth.authorization2([auth.librarian])], (req, res) => {
+router.post('/genre', [authentication, authorization(librarian)], (req, res) => {
     if(!req.body.name) return res.status(400).json({message: 'Missing genre name!'});
     bookService.addGenre(req, res);
 });
 
-router.delete('/genre/:name', [auth.authentication, auth.authorization2([auth.librarian])], (req, res) => {
+router.delete('/genre/:name', [authentication, authorization(librarian)], (req, res) => {
     bookService.deleteGenre(req, res);
 });
 
