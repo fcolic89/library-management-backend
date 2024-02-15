@@ -2,52 +2,52 @@ const nodeCron = require('node-cron');
 const { Checkout, Book, checkoutStatus } = require('../database/models');
 const db = require('../database/db');
 
-const timeLimit = 2592000; //30 days
+const timeLimit = 2592000; // 30 days
 // const testTimeLiimt = 5;
 
-nodeCron.schedule('* 0 1 * * *', async function(){
-    try{
-        const checkoutList = await Checkout.find({ status: checkoutStatus.checkedout });
-        let takenOut = Math.floor(c.createdAt / 1000);
-        let today = Math.floor(Date.now() / 1000);
-        for(const c of checkoutList){ 
-            if(today - takenOut >= timeLimit){
-                c.fine +=300;
-                await c.save();
-            }
-        }
-    }catch(err){
-            console.log('Cron job error: Error: ' + err.message);
+nodeCron.schedule('* 0 1 * * *', async () => {
+  try {
+    const checkoutList = await Checkout.find({ status: checkoutStatus.checkedout });
+    const takenOut = Math.floor(c.createdAt / 1000);
+    const today = Math.floor(Date.now() / 1000);
+    for (const c of checkoutList) {
+      if (today - takenOut >= timeLimit) {
+        c.fine += 300;
+        await c.save();
+      }
     }
+  } catch (err) {
+    console.log(`Cron job error: Error: ${err.message}`);
+  }
 });
 
-nodeCron.schedule('* 0 1 * * *', async function(){
-    try{
-        const checkoutList = await Checkout.find({ status: checkoutStatus.pending });
-        let takenOut = Math.floor(c.createdAt / 1000);
-        let today = Math.floor(Date.now() / 1000);
+nodeCron.schedule('* 0 1 * * *', async () => {
+  try {
+    const checkoutList = await Checkout.find({ status: checkoutStatus.pending });
+    const takenOut = Math.floor(c.createdAt / 1000);
+    const today = Math.floor(Date.now() / 1000);
 
-        for(const c of checkoutList){
-            if(today - takenOut >= timeLimit){
-                const session = await db.startSession();
-                try{
-                    const book = await Book.findOne({ _id: c.book });
-                    book.quantityCurrent++;
-                    
-                    session.startTransaction();
+    for (const c of checkoutList) {
+      if (today - takenOut >= timeLimit) {
+        const session = await db.startSession();
+        try {
+          const book = await Book.findOne({ _id: c.book });
+          book.quantityCurrent++;
 
-                    await book.save({session});
-                    await c.deleteOne({session});
+          session.startTransaction();
 
-                    await session.commitTransaction();
-                }catch(err){
-                    await session.abortTransaction();
-                }finally{
-                    session.endSession();
-                }
-            }
+          await book.save({ session });
+          await c.deleteOne({ session });
+
+          await session.commitTransaction();
+        } catch (err) {
+          await session.abortTransaction();
+        } finally {
+          session.endSession();
         }
-    }catch(err){
-            console.log('Cron job error: Error: ' + err.message);
+      }
     }
+  } catch (err) {
+    console.log(`Cron job error: Error: ${err.message}`);
+  }
 });
