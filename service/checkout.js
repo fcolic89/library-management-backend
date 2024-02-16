@@ -4,7 +4,7 @@ const {
 
 const dbConnection = require('../database/db');
 
-async function checkoutBook(req, res) {
+const checkoutBook = async (req, res) => {
   const session = await dbConnection.startSession();
   try {
     const book = await Book.findOne({ _id: req.body.bookId });
@@ -63,9 +63,9 @@ async function checkoutBook(req, res) {
   } finally {
     session.endSession();
   }
-}
+};
 
-async function returnBook(req, res) {
+const returnBook = async (req, res) => {
   const session = await dbConnection.startSession();
   try {
     const checkout = await Checkout.findOne({ user: req.body.userId, book: req.body.bookId, status: checkoutStatus.checkedout });
@@ -89,9 +89,9 @@ async function returnBook(req, res) {
   } finally {
     session.endSession();
   }
-}
+};
 
-async function reserveBook(req, res) {
+const reserveBook = async (req, res) => {
   const session = await dbConnection.startSession();
   try {
     const book = await Book.findOne({ _id: req.body.bookId });
@@ -137,9 +137,9 @@ async function reserveBook(req, res) {
   } finally {
     session.endSession();
   }
-}
+};
 
-async function findCheckouts(req, res) {
+const findCheckouts = async (req, res) => {
   try {
     const { page = 1, size = 10 } = req.query;
     const limit = Number(size) + 1;
@@ -177,9 +177,9 @@ async function findCheckouts(req, res) {
   } catch (err) {
     res.status(500).json({ message: `An error occurred while getting checkout! Error: ${err.message}` });
   }
-}
+};
 
-async function agregateFines(req, res) {
+const agregateFines = async (req, res) => {
   try {
     const { page = 1, size = 10 } = req.query;
     const limit = Number(size) + 1;
@@ -211,9 +211,9 @@ async function agregateFines(req, res) {
   } catch (err) {
     res.status(500).json({ message: `An error occurred while getting agregated fines! Error: ${err.message}` });
   }
-}
+};
 
-async function userCheckouts(req, res) {
+const userCheckouts = async (req, res) => {
   try {
     const { page = 1, size = 10 } = req.query;
     const limit = Number(size) + 1;
@@ -272,9 +272,9 @@ async function userCheckouts(req, res) {
   } catch (err) {
     res.status(500).json({ message: `An error occurred while getting user checkouts! Error: ${err.message}` });
   }
-}
+};
 
-async function bookCheckouts(req, res) {
+const bookCheckouts = async (req, res) => {
   try {
     const { page = 1, size = 10 } = req.query;
     const limit = Number(size) + 1;
@@ -318,9 +318,9 @@ async function bookCheckouts(req, res) {
   } catch (err) {
     res.status(500).json({ message: `An error occurred while getting book checkouts! Error: ${err.message}` });
   }
-}
+};
 
-async function myCheckouts(req, res) {
+const myCheckouts = async (req, res) => {
   try {
     const { page = 1, size = 10 } = req.query;
     const limit = Number(size) + 1;
@@ -379,7 +379,7 @@ async function myCheckouts(req, res) {
   } catch (err) {
     res.status(500).json({ message: `An error occurred while getting user checkouts! Error: ${err.message}` });
   }
-}
+};
 
 module.exports = {
   checkoutBook,

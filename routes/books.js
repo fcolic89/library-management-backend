@@ -4,71 +4,61 @@ const router = express.Router();
 const bookService = require('../service/book');
 const { regular, librarian } = require('../database/models').userRoles;
 const { authentication, authorization } = require('../middleware/auth');
+const error = require('../middleware/errorHandling/errorConstants');
+const { catchAsyncError } = require('../middleware/errorHandling/functionErrorHandler');
 const {
   bookSchema, updateBookSchema, commentSchema, replyCommentSchema,
 } = require('./joi');
 
-router.post('/', [authentication, authorization(librarian)], (req, res) => {
-  const result = bookSchema.validate(req.body);
-  if (result.error) {
-    return res.status(400).send(result.error);
+router.post('/', [authentication, authorization(librarian)], (req, res, next) => {
+  const { error: validationError } = bookSchema.validate(req.body);
+  if (validationError) {
+    throw new Error(error.BAD_REQUEST);
   }
-  bookService.saveBook(req, res);
-});
+  next();
+}, catchAsyncError(bookService.saveBook));
 
-router.delete('/:id', [authentication, authorization(librarian)], (req, res) => {
-  bookService.deleteBook(req, res);
-});
+router.delete('/:id', [authentication, authorization(librarian)], catchAsyncError(bookService.deleteBook));
 
-router.get('/find/:id', (req, res) => {
-  bookService.findBookById(req, res);
-});
+router.get('/find/:id', catchAsyncError(bookService.findBookById));
 
-router.get('/filter', (req, res) => {
-  bookService.filterBooks(req, res);
-});
+router.get('/filter', catchAsyncError(bookService.filterBooks));
 
-router.put('/', [authentication, authorization(librarian)], (req, res) => {
-  const { error } = updateBookSchema.validate(req.body);
-  if (error) return res.status(400).json({ message: 'Invalid input!', error });
-  bookService.updateBook(req, res);
-});
+router.put('/', [authentication, authorization(librarian)], (req, res, next) => {
+  const { error: validationError } = updateBookSchema.validate(req.body);
+  if (validationError) {
+    throw new Error(error.BAD_REQUEST);
+  }
+  next();
+}, catchAsyncError(bookService.updateBook));
 
-router.post('/comment/:bookId', [authentication, authorization(librarian, regular)], (req, res) => {
-  const { error } = commentSchema.validate(req.body);
-  if (error) return res.status(400).json({ message: 'Invalid input!', error });
+router.post('/comment/:bookId', [authentication, authorization(librarian, regular)], (req, res, next) => {
+  const { error: validationError } = commentSchema.validate(req.body);
+  if (validationError) {
+    throw new Error(error.BAD_REQUEST);
+  }
+  next();
+}, catchAsyncError(bookService.addComment));
 
-  bookService.addComment(req, res);
-});
-router.post('/comment-reply/:bookId', [authentication, authorization(librarian, regular)], (req, res) => {
-  const { error } = replyCommentSchema.validate(req.body);
-  if (error) return res.status(400).json({ message: 'Invalid input!', error });
+router.put('/comment/:commentId', [authentication, authorization(librarian, regular)], (req, res, next) => {
+  const { error: validationError } = commentSchema.validate(req.body);
+  if (validationError) {
+    throw new Error(error.BAD_REQUEST);
+  }
+  next();
+}, catchAsyncError(bookService.editComment));
 
-  bookService.replyComment(req, res);
-});
+router.get('/comment/:bookId', [authentication, authorization(librarian, regular)], catchAsyncError(bookService.findComments));
 
-router.put('/comment/:commentId', [authentication, authorization(librarian, regular)], (req, res) => {
-  const { error } = commentSchema.validate(req.body);
-  if (error) return res.status(400).json({ message: 'Invalid input!', error });
+router.get('/genre', [authentication, authorization(librarian, regular)], catchAsyncError(bookService.getGenre));
 
-  bookService.editComment(req, res);
-});
+router.post('/genre', [authentication, authorization(librarian)], (req, res, next) => {
+  if (!req.body.name) {
+    throw new Error(error.BAD_REQUEST);
+  }
+  next();
+}, catchAsyncError(bookService.addGenre));
 
-router.get('/comment/:bookId', [authentication, authorization(librarian, regular)], (req, res) => {
-  bookService.findComments(req, res);
-});
-
-router.get('/genre', [authentication, authorization(librarian, regular)], (req, res) => {
-  bookService.getGenre(req, res);
-});
-
-router.post('/genre', [authentication, authorization(librarian)], (req, res) => {
-  if (!req.body.name) return res.status(400).json({ message: 'Missing genre name!' });
-  bookService.addGenre(req, res);
-});
-
-router.delete('/genre/:name', [authentication, authorization(librarian)], (req, res) => {
-  bookService.deleteGenre(req, res);
-});
+router.delete('/genre/:name', [authentication, authorization(librarian)], catchAsyncError(bookService.deleteGenre));
 
 module.exports = router;

@@ -5,65 +5,65 @@ const userService = require('../service/user');
 const { regular, librarian, admin } = require('../database/models').userRoles;
 const { authentication, authorization } = require('../middleware/auth');
 const { registerSchema, updateUserSchema, changePrivSchema } = require('./joi');
+const { catchAsyncError } = require('../middleware/errorHandling/functionErrorHandler');
+const error = require('../middleware/errorHandling/errorConstants');
 
-router.post('/register', (req, res) => {
-  const result = registerSchema.validate(req.body);
-  if (result.error || req.body.role !== regular) {
-    return res.status(400).send(result.error);
+router.post('/register', (req, res, next) => {
+  const { error: validationError } = registerSchema.validate(req.body);
+  if (validationError || (req.body.role && req.body.role !== regular)) {
+    throw new Error(error.BAD_REQUEST);
   }
-  userService.saveUser(req, res);
-});
+  next();
+}, catchAsyncError(userService.registerUser));
 
-router.post('/add', [authentication, authorization(admin)], (req, res) => {
-  const result = registerSchema.validate(req.body);
-  if (result.error) {
-    return res.status(400).send(result.error);
+router.post('/add', [authentication, authorization(admin)], (req, res, next) => {
+  const { error: validationError } = registerSchema.validate(req.body);
+  if (validationError) {
+    throw new Error(error.BAD_REQUEST);
   }
-  userService.saveUser(req, res);
-});
+  next();
+}, catchAsyncError(userService.registerUser));
 
-router.delete('/:id', [authentication, authorization(admin)], (req, res) => {
-  userService.deleteUser(req, res);
-});
+router.delete('/:id', catchAsyncError(userService.deleteUser));
 
-router.put('/', [authentication, authorization(admin, librarian, regular)], (req, res) => {
+router.put('/', [authentication, authorization(admin, librarian, regular)], (req, res, next) => {
   const result = updateUserSchema.validate(req.body);
   if (result.error) {
-    return res.status(400).json({ message: 'Missing information!' });
+    throw new Error(error.BAD_REQUEST);
   }
-  userService.updateUser(req, res);
-});
+  next();
+}, catchAsyncError(userService.updateUser));
 
-router.get('/find', [authentication, authorization(admin)], (req, res) => {
-  userService.findUser(req, res);
-});
+router.get('/find', [authentication, authorization(admin)], catchAsyncError(userService.findUser));
 
-router.get('/findRegular', [authentication, authorization(librarian)], (req, res) => {
+router.get('/findRegular', [authentication, authorization(librarian)], (req, res, next) => {
   req.query.role = 'REGULAR,';
-  userService.findUser(req, res);
-});
+  next();
+}, catchAsyncError(userService.findUser));
 
-router.put('/pwd-change', [authentication, authorization(admin, librarian, regular)], (req, res) => {
-  if (!req.body.password) return res.status(400).json({ message: 'Missing password!' });
-  userService.changePassword(req, res);
-});
+router.put('/pwd-change', [authentication, authorization(admin, librarian, regular)], (req, res, next) => {
+  if (!req.body.password) {
+    throw new Error(error.BAD_REQUEST);
+  }
+  next();
+}, catchAsyncError(userService.changePassword));
 
-router.get('/profile', [authentication, authorization(admin, librarian, regular)], (req, res) => {
-  userService.getUserInformation(req, res);
-});
+router.get('/profile', [authentication, authorization(admin, librarian, regular)], catchAsyncError(userService.getUserInformation));
 
-router.put('/priv/comment', [authentication, authorization(admin)], (req, res) => {
-  const { error } = changePrivSchema.validate(req.body);
-  if (error) return res.status(400).json({ message: 'Invalid information!', error });
+router.put('/priv/comment', [authentication, authorization(admin)], (req, res, next) => {
+  const { error: validationError } = changePrivSchema.validate(req.body);
+  if (validationError) {
+    throw new Error(error.BAD_REQUEST);
+  }
+  next();
+}, catchAsyncError(userService.changeCommentPriv));
 
-  userService.changeCommentPriv(req, res);
-});
-
-router.put('/priv/book', [authentication, authorization(admin)], (req, res) => {
-  const { error } = changePrivSchema.validate(req.body);
-  if (error) return res.status(400).json({ message: 'Invalid information!', error });
-
-  userService.changeTakeBookPriv(req, res);
-});
+router.put('/priv/book', [authentication, authorization(admin)], (req, res, next) => {
+  const { error: validationError } = changePrivSchema.validate(req.body);
+  if (validationError) {
+    throw new Error(error.BAD_REQUEST);
+  }
+  next();
+}, catchAsyncError(userService.changeTakeBookPriv));
 
 module.exports = router;

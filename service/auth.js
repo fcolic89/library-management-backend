@@ -4,7 +4,7 @@ const { User } = require('../database/models');
 
 const privateKey = process.env.PRIVATE_KEY || 'supersecretandsuperprivatekey';
 
-async function login(req, res) {
+const login = async (req, res) => {
   const user = await User.findOne({ email: req.body.email });
   if (!user) return res.status(400).json({ message: 'Invalid email or password!' });
   const match = await bcrypt.compare(req.body.password, user.password);
@@ -19,17 +19,16 @@ async function login(req, res) {
     takeBook: user.takeBook,
   }, privateKey);
   res.json({ jwt: token });
-}
+};
 
-function generateToken(id, username, role, canComment, takeBook) {
-  return (jwt.sign({
+const generateToken = (id, username, role, canComment, takeBook) => (
+  jwt.sign({
     id,
     username,
     role,
     canComment,
     takeBook,
   }, privateKey));
-}
 
 module.exports = {
   login,

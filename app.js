@@ -6,6 +6,7 @@ const routeUser = require('./routes/user');
 const routeAuth = require('./routes/auth');
 const routeBook = require('./routes/books');
 const routeCheckout = require('./routes/checkout');
+const errorHandler = require('./middleware/errorHandling/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -21,6 +22,7 @@ app.use('/api/user', routeUser);
 app.use('/api/auth', routeAuth);
 app.use('/api/book', routeBook);
 app.use('/api/checkout', routeCheckout);
+app.use(errorHandler());
 
 app.get('/', (req, res) => {
   res.send('Hello World!');

@@ -1,172 +1,162 @@
+/* eslint-disable no-param-reassign */
 const { Book, Comment, Genre } = require('../database/models');
 const dbConnection = require('../database/db');
+const error = require('../middleware/errorHandling/errorConstants');
 
-async function saveBook(req, res) {
-  try {
-    const book = new Book({
-      title: req.body.title,
-      author: req.body.author,
-      dateOfPublishing: req.body.dateOfPublishing,
-      pageCount: req.body.pageCount,
-      quantityMax: req.body.quantityMax,
-      quantityCurrent: req.body.quantityMax,
-      imageUrl: req.body.imageUrl,
-      description: req.body.description,
-      genre: req.body.genre,
-    });
-    await book.save();
-    res.json({ message: 'New book saved!' });
-  } catch (err) {
-    res.status(500).json({ message: `Failed to save new book!Error: ${err.message}` });
+const saveBook = async (req, res) => {
+  const {
+    title, author, dateOfPublishing, pageCount, quantityMax, quantityCurrent, imageUrl, description, genre,
+  } = req.body;
+
+  if (isNaN(new Date(dateOfPublishing))) {
+    throw new Error(error.INVALID_VALUE);
   }
-}
 
-async function deleteBook(req, res) {
+  await new Book({
+    title,
+    author,
+    dateOfPublishing,
+    pageCount,
+    quantityMax,
+    quantityCurrent,
+    imageUrl,
+    description,
+    genre,
+  }).save();
+
+  return res.json({ message: 'New book saved!' });
+};
+
+const deleteBook = async (req, res, next) => {
+  const { id: bookId } = req.params;
+
+  const book = await Book.findOne({ _id: bookId }).lean();
+  if (!book) {
+    throw new Error(error.NOT_FOUND);
+  } else if (book.quantityMax !== book.quantityCurrent) {
+    throw new Error(error.COPIES_CHECKED_OUT);
+  }
   const session = await dbConnection.startSession();
   try {
-    const book = await Book.findOne({ _id: req.params.id });
-    if (!book) return res.status(404).json({ message: `An error occurred while deleting book! Book with id: ${req.params.id} does not exist.` });
-    if (book.quantityMax === book.quantityCurrent) {
-      session.startTransaction();
+    session.startTransaction();
 
-      await book.deleteOne({ session });
+    await Promise.all([
+      Book.deleteOne({ _id: bookId }, { session }),
+      Comment.deleteMany({ bookId }),
+    ]);
 
-      const comments = await Comment.find({ bookId: req.params.id });
-      for (let i = 0; i < comments.length; i++) {
-        await c.deleteOne({ session });
-      }
+    await session.commitTransaction();
 
-      await session.commitTransaction();
-    } else return res.status(500).json({ message: 'Cannot deleted book! Copies of the book have been checked out.' });
-
-    res.json({ message: 'Book deleted!' });
+    return res.json({ message: 'Book deleted!' });
   } catch (err) {
     await session.abortTransaction();
-    res.status(500).json({ message: `An error occurred while deleting book! Error: ${err.message}` });
+    next(err);
   } finally {
     session.endSession();
   }
-}
+};
 
-async function updateBook(req, res) {
-  try {
-    const book = await Book.findOne({ _id: req.body._id });
-    if (!book) return res.status(404).json({ message: `An error occurred while updating a book! Book with id ${req.body.id} does not exist.` });
+const updateBook = async (req, res) => {
+  const {
+    _id: bookId, title, description, pageCount, author, dateOfPublishing, quantityMax, imageUrl, genre,
+  } = req.body;
 
-    book.title = req.body.title;
-    book.description = req.body.description;
-    book.pageCount = req.body.pageCount;
-    book.author = req.body.author;
-    book.dateOfPublishing = req.body.dateOfPublishing;
-    book.quantityMax = req.body.quantityMax;
-    book.imageUrl = req.body.imageUrl;
-    book.genre = req.body.genre;
-
-    await book.save();
-    res.json({ message: 'Book updated!' });
-  } catch (err) {
-    res.status(500).json({ message: `An error occurred while updating book! Error: ${err.message}` });
+  if (isNaN(new Date(dateOfPublishing))) {
+    throw new Error(error.INVALID_VALUE);
   }
-}
 
-async function findBookById(req, res) {
-  try {
-    const book = await Book.findOne({ _id: req.params.id });
-    if (!book) return res.status(404).json({ message: `An error occurred while finding book! Book with id ${req.params.id} does not exist!` });
+  const book = await Book.findOneAndUpdate({ _id: bookId }, {
+    title, description, pageCount, author, dateOfPublishing, quantityMax, imageUrl, genre,
+  }).lean();
 
-    let rating = 0;
-    if (book.rating.ratingCount !== 0) rating = book.rating.ratingSum / book.rating.ratingCount;
-    res.send({
-      _id: book._id,
-      author: book.author,
-      description: book.description,
-      pageCount: book.pageCount,
-      quantityMax: book.quantityMax,
-      quantityCurrent: book.quantityCurrent,
-      title: book.title,
-      genre: book.genre,
-      imageUrl: book.imageUrl,
-      dateOfPublishing: book.dateOfPublishing,
-      rating,
-    });
-  } catch (err) {
-    res.status(500).json({ message: `An error occurred while finding book! Error: ${err.message}` });
+  if (!book) {
+    throw new Error(error.NOT_FOUND);
   }
-}
 
-async function filterBooks(req, res) {
-  try {
-    const {
-      title, author, genre, size = 10, page = 1,
-    } = req.query;
-    const limit = Number(size) + 1;
-    const skip = (Number(page) - 1) * Number(size);
+  return res.json({ message: 'Book updated!' });
+};
 
-    let bookList = [];
-    if (genre === undefined || genre === '') {
-      bookList = await Book.find({
-        title: new RegExp(title, 'i'),
-        author: new RegExp(author, 'i'),
-      })
-        .limit(limit)
-        .skip(skip)
-        .sort({ title: 1 });
+const findBookById = async (req, res) => {
+  const { id: bookId } = req.params;
+
+  const book = await Book.findOne({ _id: bookId }).lean();
+  if (!book) {
+    throw new Error(error.NOT_FOUND);
+  }
+
+  if (book.rating.ratingCount !== 0) {
+    const rating = book.rating.ratingSum / book.rating.ratingCount;
+    book.rating = rating;
+  } else {
+    book.rating = 0;
+  }
+
+  return res.send(book);
+};
+
+const filterBooks = async (req, res) => {
+  const {
+    title, author, genre, size = 10, page = 1,
+  } = req.query;
+
+  const limit = Number(size) + 1;
+  const skip = (Number(page) - 1) * Number(size);
+
+  if (Number.isNaN(limit) || Number.isNaN(skip)) {
+    throw new Error(error.INVALID_VALUE);
+  }
+  const bookFilter = {
+    title: new RegExp(title, 'i'),
+    author: new RegExp(author, 'i'),
+  };
+  if (genre) {
+    bookFilter.genre = { $in: genre.split(',') };
+  }
+
+  const books = await Book.find(bookFilter)
+    .limit(limit)
+    .skip(skip)
+    .sort({ title: 1 })
+    .lean();
+
+  let hasNext = false;
+  if (books.length === limit) {
+    hasNext = true;
+    books.splice(books.length - 1, 1);
+  }
+
+  books.forEach((book) => {
+    if (book.rating.ratingCount !== 0) {
+      const rating = book.rating.ratingSum / book.rating.ratingCount;
+      book.rating = rating;
     } else {
-      bookList = await Book.find({
-        title: new RegExp(title, 'i'),
-        author: new RegExp(author, 'i'),
-        genre: { $in: genre.split(',') },
-      })
-        .limit(limit)
-        .skip(skip)
-        .sort({ title: 1 });
+      book.rating = 0;
     }
+  });
 
-    let hasNext = false;
-    if (bookList.length === limit) {
-      hasNext = true;
-      bookList.splice(bookList.length - 1, 1);
-    }
+  return res.send({
+    hasNext,
+    books,
+  });
+};
 
-    const returnList = [];
-    bookList.forEach((book) => {
-      let rating = 0;
-      if (book.rating.ratingCount !== 0) rating = book.rating.ratingSum / book.rating.ratingCount;
-      returnList.push({
-        _id: book._id,
-        author: book.author,
-        description: book.description,
-        pageCount: book.pageCount,
-        quantityMax: book.quantityMax,
-        quantityCurrent: book.quantityCurrent,
-        title: book.title,
-        genre: book.genre,
-        imageUrl: book.imageUrl,
-        dateOfPublishing: book.dateOfPublishing,
-        rating,
-      });
-    });
+const addComment = async (req, res, next) => {
+  const { bookId } = req.params;
+  const { username } = req.user;
+  const { comment, rating } = req.body;
 
-    res.send({
-      hasNext,
-      books: returnList,
-    });
-  } catch (err) {
-    res.status(500).json({ message: `An error occurred while finding book! Error: ${err.message}` });
+  const book = await Book.findOne({ _id: bookId });
+  if (!book) {
+    throw new Error(error.NOT_FOUND);
   }
-}
 
-async function addComment(req, res) {
   const session = await dbConnection.startSession();
   try {
-    const book = await Book.findOne({ _id: req.params.bookId });
-    if (!book) return res.status(404).json({ message: `An error occurred while saving your commnet! Error: Book with id: ${req.body.bookId} does not exist` });
-
-    const comment = new Comment({
-      bookId: req.params.bookId,
-      author: req.user.username,
-      comment: req.body.comment,
-      rating: req.body.rating,
+    const bookComment = new Comment({
+      bookId,
+      author: username,
+      comment,
+      rating,
     });
 
     session.startTransaction();
@@ -174,164 +164,129 @@ async function addComment(req, res) {
     book.rating.ratingSum += comment.rating;
     book.rating.ratingCount++;
 
-    const com = await comment.save({ session });
-    await book.save({ session });
+    await Promise.all([
+      bookComment.save({ session }),
+      book.save({ session }),
+    ]);
 
     await session.commitTransaction();
 
-    res.json({ messsage: com._id });
+    return res.json({ messsage: 'Comment added' });
   } catch (err) {
     await session.abortTransaction();
-    res.status(500).json({ message: `An error occurred while saving your commnet! Error: ${err.message}` });
-  }
-}
-
-async function replyComment(req, res) {
-  const session = await dbConnection.startSession();
-  try {
-    const book = await Book.findOne({ _id: req.params.bookId });
-    if (!book) return res.status(404).json({ message: `An error occurred while saving your commnet! Error: Book with id: ${req.body.bookId} does not exist` });
-
-    const parentComment = await Comment.findOne({ _id: req.body.parentCommentId });
-    if (!parentComment) return res.status(404).json({ message: `An error occurred while saving your commnet! Error: Comment with id: ${req.body.parentCommentId} does not exist` });
-
-    const comment = new Comment({
-      bookId: req.params.bookId,
-      author: req.user.username,
-      comment: req.body.comment,
-      parentCommentId: req.body.parentCommentId,
-    });
-
-    session.startTransaction();
-
-    if (!parentComment.replies) {
-      parentComment.replies = true;
-      await parentComment.save({ session });
-    }
-    const com = await comment.save({ session });
-
-    await session.commitTransaction();
-
-    res.json({ message: com._id });
-  } catch (err) {
-    await session.abortTransaction();
-    res.status(500).json({ message: `An error occurred while saving your commnet! Error: ${err.message}` });
-  }
-}
-
-async function editComment(req, res) {
-  try {
-    const com = await Comment.findOne({ _id: req.params.commentId });
-    if (!com) return res.status(404).json({ message: 'Cant edit comment! Comment does not exist.' });
-
-    com.comment = req.body.comment;
-    await com.save();
-    res.json({ message: 'Commend edited!' });
-  } catch (err) {
-    res.status(500).json({ message: `An error occurred while editing comment! Error: ${err.message}` });
-  }
-}
-
-async function findComments(req, res) {
-  try {
-    const { page = 1, size = 10 } = req.query;
-    const limit = Number(size) + 1;
-    const skip = (Number(page) - 1) * Number(size);
-
-    let commentList = [];
-    if (req.query.replies) {
-      commentList = await Comment.find({ bookId: req.params.bookId, parentCommentId: req.query.replies })
-        .limit(limit)
-        .skip(skip);
-    } else {
-      commentList = await Comment.find({ bookId: req.params.bookId, parentCommentId: null })
-        .limit(limit)
-        .skip(skip);
-    }
-    let hasNext = false;
-    if (commentList.length === limit) {
-      hasNext = true;
-      commentList.splice(commentList.length - 1, 1);
-    }
-
-    res.send({
-      hasNext,
-      comments: commentList,
-    });
-  } catch (err) {
-    res.status(500).json({ message: `An error occurred while getting comments! Error: ${err.message}` });
-  }
-}
-
-async function getGenre(req, res) {
-  try {
-    const { page = 1, size = 10 } = req.query;
-    const limit = Number(size) + 1;
-    const skip = (Number(page) - 1) * Number(size);
-
-    let genreList = [];
-    genreList = await Genre.find()
-      .limit(limit)
-      .skip(skip);
-
-    let hasNext = false;
-    if (genreList.length === limit) {
-      hasNext = true;
-      genreList.splice(genreList.length - 1, 1);
-    }
-
-    res.send({
-      hasNext,
-      genres: genreList,
-    });
-  } catch (err) {
-    res.status(500).json({ message: `An error occurred while getting genres! Error: ${err.message}` });
-  }
-}
-
-async function addGenre(req, res) {
-  try {
-    const genre = new Genre({
-      name: req.body.name,
-    });
-
-    await genre.save();
-    res.json({ message: 'Genre added!' });
-  } catch (err) {
-    res.status(500).json({ message: `An error occurred while adding genre! Error: ${err.message}` });
-  }
-}
-
-async function deleteGenre(req, res) {
-  const session = await dbConnection.startSession();
-  try {
-    const genre = await Genre.find({ name: req.params.name });
-    if (!genre) return res.status(404).json({ message: `Genre with name: ${req.params.name} does not exist!` });
-
-    session.startTransaction();
-
-    await Genre.deleteOne({ name: req.params.name }, { session });
-
-    const books = await Book.find({ genre: { $in: [req.params.name] } });
-    books.forEach((book) => async () => {
-      for (let i = 0; i < book.genre.length; i++) {
-        if (book.genre[i] === req.params.name) {
-          book.genre.splice(i, 1);
-          await book.save({ session });
-          break;
-        }
-      }
-    });
-    await session.commitTransaction();
-
-    res.json({ message: 'Genre deleted!' });
-  } catch (err) {
-    res.status(500).json({ message: `An error occurred while deleting genre! Error: ${err.message}` });
-    await session.abortTransaction();
+    next(err);
   } finally {
     session.endSession();
   }
-}
+};
+
+const editComment = async (req, res) => {
+  const { commentId } = req.params;
+  const { comment: commentText } = req.body;
+
+  const comment = await Book.findOneAndUpdate({ _id: commentId }, { comment: commentText, edited: true }).lean();
+  if (!comment) {
+    throw new Error(error.NOT_FOUND);
+  }
+
+  return res.json({ message: 'Commend edited!' });
+};
+
+const findComments = async (req, res) => {
+  const { page = 1, size = 10 } = req.query;
+  const { bookId } = req.params;
+
+  const limit = Number(size) + 1;
+  const skip = (Number(page) - 1) * Number(size);
+
+  if (Number.isNaN(limit) || Number.isNaN(skip)) {
+    throw new Error(error.INVALID_VALUE);
+  }
+
+  const comments = await Comment.find({ bookId })
+    .limit(limit)
+    .skip(skip)
+    .lean();
+
+  let hasNext = false;
+  if (comments.length === limit) {
+    hasNext = true;
+    comments.splice(comments.length - 1, 1);
+  }
+
+  return res.send({
+    hasNext,
+    comments,
+  });
+};
+
+const getGenre = async (req, res) => {
+  const { page = 1, size = 10 } = req.query;
+
+  const limit = Number(size) + 1;
+  const skip = (Number(page) - 1) * Number(size);
+
+  if (Number.isNaN(limit) || Number.isNaN(skip)) {
+    throw new Error(error.INVALID_VALUE);
+  }
+
+  const genres = await Genre.find()
+    .limit(limit)
+    .skip(skip);
+
+  let hasNext = false;
+  if (genres.length === limit) {
+    hasNext = true;
+    genres.splice(genres.length - 1, 1);
+  }
+
+  return res.send({
+    hasNext,
+    genres,
+  });
+};
+
+const addGenre = async (req, res) => {
+  const { name } = req.body;
+
+  const genre = new Genre({
+    name,
+  });
+
+  await genre.save();
+  return res.json({ message: 'Genre added!' });
+};
+
+const deleteGenre = async (req, res, next) => {
+  const { name } = req.params;
+  const session = await dbConnection.startSession();
+  try {
+    const promises = [];
+    session.startTransaction();
+
+    promises.push(Genre.deleteOne({ name }, { session }));
+
+    const books = await Book.find({ genre: { $in: [req.params.name] } });
+    books.forEach((book) => {
+      book.genre.splice(book.genre.indexOf(name), 1);
+      promises.push(book.save({ session }));
+    });
+
+    const [deleteResult] = await Promise.all(promises);
+    if (deleteResult.deletedCount === 0) {
+      throw new Error(error.NOT_FOUND);
+    }
+
+    await session.commitTransaction();
+
+    return res.json({ message: 'Genre deleted!' });
+  } catch (err) {
+    await session.abortTransaction();
+    next(err);
+  } finally {
+    session.endSession();
+  }
+};
 
 module.exports = {
   saveBook,
@@ -340,7 +295,6 @@ module.exports = {
   findBookById,
   filterBooks,
   addComment,
-  replyComment,
   editComment,
   findComments,
   getGenre,

@@ -53,11 +53,6 @@ const commentSchema = Joi.object({
   comment: Joi.string().allow('', null).optional(),
 });
 
-const replyCommentSchema = Joi.object({
-  comment: Joi.string().required(),
-  parentCommentId: Joi.string().required(),
-});
-
 const returnBookSchema = Joi.object({
   userId: Joi.string().required(),
   bookId: Joi.string().required(),

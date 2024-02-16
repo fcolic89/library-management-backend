@@ -4,231 +4,280 @@ const {
 } = require('../database/models');
 const dbConnection = require('../database/db');
 const authService = require('./auth');
+const error = require('../middleware/errorHandling/errorConstants');
 
-async function saveUser(req, res) {
-  try {
-    const enpass = await bcrypt.hash(req.body.password, 10);
-    const user = new User({
-      username: req.body.username,
-      password: enpass,
-      email: req.body.email,
-      firstname: req.body.firstname,
-      lastname: req.body.lastname,
-      isDeleted: false,
-    });
-    if (req.body.role && req.body.role !== userRoles.regular) {
-      user.role = req.body.role;
-      user.canComment = false;
-      user.takeBook = false;
+const registerUser = async (req, res) => {
+  const {
+    username, password, email, firstname, lastname, role,
+  } = req.body;
+
+  const dbUser = await User.findOne({
+    $or: [
+      { email },
+      { username },
+    ],
+  }).lean();
+  if (dbUser) {
+    if (dbUser.email === email) {
+      throw new Error(error.DUPLICATE_EMAIL);
+    } else {
+      throw new Error(error.DUPLICATE_USERNAME);
     }
-    await user.save();
-    res.json({ message: 'New user saved!' });
-  } catch (err) {
-    res.status(500).json({ message: `Failed to save new user!Error: ${err.message}` });
   }
-}
 
-async function deleteUser(req, res) {
+  const enpass = await bcrypt.hash(password, 10);
+  const user = new User({
+    username,
+    password: enpass,
+    email,
+    firstname,
+    lastname,
+    isDeleted: false,
+  });
+  if (role && role !== userRoles.regular) {
+    user.role = role;
+    user.canComment = false;
+    user.takeBook = false;
+  }
+  await user.save();
+  return res.send({ message: 'New user saved!' });
+};
+
+const deleteUser = async (req, res, next) => {
+  const { id: userId } = req.params;
+
+  const user = await User.findOne({ _id: userId }).lean();
+  if (!user) {
+    throw new Error(error.NOT_FOUND);
+  }
+
+  const checkouts = await Checkout.findOne({ userId, returned: false }).lean();
+  if (checkouts) {
+    throw new Error(error.DELETE_USER_UNRETURNED);
+  }
   const session = await dbConnection.startSession();
   try {
-    const user = await User.findOne({ _id: req.params.id });
-    if (!user) return res.status(400).json({ message: 'Cannot delete user! User does not exist!.' });
-
-    const checkouts = await Checkout.findOne({ userId: req.params.id, returned: false });
-    if (checkouts && checkouts.length !== 0) return res.status(400).json({ message: 'Cannot delete user! User still has unreturned books.' });
-
+    const promises = [];
     session.startTransaction();
 
-    const deletedUser = await User.deleteOne({ _id: req.params.id }, { session });
-    if (!deletedUser) throw new Error(`Could not find user with id: ${req.params.id}`);
-
-    const deleteCheckouts = await Checkout.deleteMany({ userId: req.params.id }, { session });
-    if (!deleteCheckouts) throw new Error(`Could not find checkouts with user id: ${req.params.id}`);
+    promises.push(User.deleteOne({ _id: userId }, { session }).lean());
+    promises.push(Checkout.deleteMany({ userId }, { session }));
 
     const comments = await Comment.find({ author: user.username });
     for (const c of comments) {
       c.author = '[deleted]';
-      await c.save({ session });
+      promises.push(c.save({ session }));
     }
 
+    await Promise.all(promises);
     await session.commitTransaction();
-    res.json({ message: 'User deleted!' });
+
+    return res.json({ message: 'User deleted!' });
   } catch (err) {
     await session.abortTransaction();
-    res.status(500).json({ message: `Error while trying to delete user: ${err.message}` });
+    next(err);
   } finally {
     session.endSession();
   }
-}
+};
 
-async function updateUser(req, res) {
+const updateUser = async (req, res, next) => {
+  const { id: userId } = req.user;
+  const {
+    username, firstname, lastname, email,
+  } = req.body;
+
+  const [user, sameUser] = await Promise.all([
+    User.findOne({ _id: userId }).lean(),
+    User.findOne({
+      $or: [
+        { username },
+        { email },
+      ],
+      _id: { $neq: userId },
+    }).lean(),
+  ]);
+  if (!user) {
+    throw new Error(error.NOT_FOUND);
+  } else if (sameUser) {
+    if (sameUser.email === email) {
+      throw new Error(error.DUPLICATE_EMAIL);
+    } else {
+      throw new Error(error.DUPLICATE_USERNAME);
+    }
+  }
+
+  const usernameChange = username !== user.username;
+
   const session = await dbConnection.startSession();
   try {
-    const user = await User.findOne({ _id: req.user.id });
-    const usernameChange = req.body.username !== user.username;
-    const oldUsername = `${user.username}`;
-
-    user.firstname = req.body.firstname;
-    user.lastname = req.body.lastname;
-    user.email = req.body.email;
-    user.username = req.body.username;
-
-    if (req.body.email !== user.email) {
-      const tmpUser = await User.findOne({ email: req.body.email });
-      if (tmpUser && user._id !== tmpUser._id) {
-        return res.status(400).json({ message: `User with email: ${req.body.email} already exists!` });
-      }
-    }
-
+    const promises = [];
     session.startTransaction();
 
     if (usernameChange) {
-      const comments = await Comment.find({ author: oldUsername });
+      const comments = await Comment.find({ author: user.username });
       for (const c of comments) {
         c.author = user.username;
-        await c.save({ session });
+        promises.push(c.save({ session }));
       }
     }
 
-    await user.save({ session });
+    promises.push(User.updateOne({ _id: userId }, {
+      username, email, firstname, lastname,
+    }, { session }));
+
+    await Promise.all(promises);
     await session.commitTransaction();
 
     const token = authService.generateToken(user._id, user.username, user.role, user.canComment, user.takeBook);
-    res.json({ jwt: token });
+    return res.json({ jwt: token });
   } catch (err) {
     await session.abortTransaction();
-    res.status(500).json({ message: 'An error occurred while updating user information!' });
+    next(err);
   } finally {
     session.endSession();
   }
-}
+};
 
-async function findUserById(req, res) {
-  try {
-    const user = await User.findOne({ _id: req.params.id });
-    if (!user) {
-      res.status(404).json({ message: `User with id: ${req.params.id} not found!` });
+const findUserById = async (req, res) => {
+  const { id: userId } = req.params.id;
+  const user = await User.findOne({ _id: userId }).lean();
+  if (!user) {
+    throw new Error(error.NOT_FOUND);
+  }
+
+  delete user.password;
+  delete user.role;
+  user.id = user._id;
+  delete user._id;
+
+  return res.send(user);
+};
+
+const findUser = async (req, res) => {
+  const {
+    username, email, firstname, lastname, canComment, takeBook,
+  } = req.query;
+  let { role } = req.query;
+  const { page = 1, size = 10 } = req.query;
+
+  if (!role) role = userRoles.values;
+
+  const limit = Number(size) + 1;
+  const skip = (Number(page) - 1) * Number(size);
+
+  if (Number.isNaN(limit) || Number.isNaN(skip)) {
+    throw new Error(error.INVALID_VALUE);
+  }
+
+  const userFilter = {
+    username: new RegExp(username, 'i'),
+    email: new RegExp(email, 'i'),
+    firstname: new RegExp(firstname, 'i'),
+    lastname: new RegExp(lastname, 'i'),
+    role: { $in: role },
+  };
+  if (canComment) {
+    if (canComment === 'true') {
+      userFilter.canComment = true;
+    } else if (canComment === 'false') {
+      userFilter.canComment = false;
     } else {
-      res.send({
-        id: user._id,
-        firstname: user.firstname,
-        lastname: user.lastname,
-        username: user.username,
-        email: user.email,
-      });
+      throw new Error(error.INVALID_VALUE);
     }
-  } catch (err) {
-    res.status(500).json({ message: `An error occurred while getting user with id: ${req.params.id}` });
   }
-}
-
-async function findUser(req, res) {
-  try {
-    if (!req.query.role) req.query.role = ['ADMIN', 'LIBRARIAN', 'REGULAR'];
-    else req.query.role = req.query.role.split(',');
-
-    const { page = 1, size = 10 } = req.query;
-    const limit = Number(size) + 1;
-    const skip = (Number(page) - 1) * Number(size);
-
-    const userList = await User.find({
-      username: new RegExp(req.query.username, 'i'),
-      email: new RegExp(req.query.email, 'i'),
-      firstname: new RegExp(req.query.firstname, 'i'),
-      lastname: new RegExp(req.query.lastname, 'i'),
-      role: { $in: req.query.role },
-    })
-      .limit(limit)
-      .skip(skip)
-      .sort({ username: 1 });
-
-    let hasNext = false;
-    if (userList.length === limit) {
-      hasNext = true;
-      userList.splice(userList.length - 1, 1);
-    }
-
-    const filteredList = [];
-    userList.forEach((user) => {
-      let add = true;
-      if (req.query.canComment !== undefined && user.canComment !== req.query.canComment) add = false;
-      if (req.query.takeBook !== undefined && user.takeBook !== req.query.takeBook) add = false;
-
-      if (add) filteredList.push(user);
-    });
-
-    res.send({
-      hasNext,
-      users: filteredList,
-    });
-  } catch (err) {
-    res.status(500).json({ message: `An error occurred while getting users! Error: ${err}` });
-  }
-}
-
-async function getUserInformation(req, res) {
-  try {
-    const user = await User.findOne({ _id: req.user.id });
-    if (!user) {
-      res.status(404).json({ message: `User with id: ${req.user.id} not found!` });
+  if (takeBook) {
+    if (takeBook === 'true') {
+      userFilter.takeBook = true;
+    } else if (takeBook === 'false') {
+      userFilter.takeBook = false;
     } else {
-      res.send({
-        firstname: user.firstname,
-        lastname: user.lastname,
-        username: user.username,
-        email: user.email,
-      });
+      throw new Error(error.INVALID_VALUE);
     }
-  } catch (err) {
-    res.status(500).json({ message: `An error occurred while getting user with id: ${req.user.id}` });
   }
-}
 
-async function changeCommentPriv(req, res) {
-  try {
-    const user = await User.findOne({ _id: req.body.id });
-    if (!user) return res.status(404).json({ message: `User with id: ${req.body.id} does not exist!` });
-    if (user.role === 'ADMIN') return res.status(406).json({ message: 'Cant change admin user privileges!' });
+  const userList = await User.find(userFilter)
+    .limit(limit)
+    .skip(skip)
+    .sort({ username: 1 });
 
-    user.canComment = !user.canComment;
-    await user.save();
-    res.json({ message: 'Privilege changed!' });
-  } catch (err) {
-    res.status(500).json({ message: `An error occurred while changing user comment privileges: ${req.user.id}` });
+  let hasNext = false;
+  if (userList.length === limit) {
+    hasNext = true;
+    userList.splice(userList.length - 1, 1);
   }
-}
 
-async function changeTakeBookPriv(req, res) {
-  try {
-    const user = await User.findOne({ _id: req.body.id });
-    if (!user) return res.status(404).json({ message: `User with id: ${req.body.id} does not exist!` });
-    if (user.role !== 'REGULAR') return res.status(406).json({ message: 'Cant change non-regular user privileges!' });
+  return res.send({
+    hasNext,
+    users: userList,
+  });
+};
 
-    user.takeBook = !user.takeBook;
-    await user.save();
-    res.json({ message: 'Privilege changed!' });
-  } catch (err) {
-    res.status(500).json({ message: `An error occurred while changing user comment privileges: ${req.user.id}` });
+const getUserInformation = async (req, res) => {
+  const { _id: userId } = req.user;
+  const user = await User.findOne({ _id: userId }).lean();
+  if (!user) {
+    throw new Error(error.NOT_FOUND);
   }
-}
+  delete user.password;
+  delete user.role;
+  user.id = user._id;
+  delete user._id;
 
-async function changePassword(req, res) {
-  try {
-    const user = await User.findOne({ _id: req.user.id });
-    if (!user) return res.status(404).json({ message: 'User not found!' });
+  return res.send(user);
+};
 
-    const pass = await bcrypt.hash(req.body.password, 10);
-    user.password = pass;
+const changeCommentPriv = async (req, res) => {
+  const { id: userId } = req.body;
 
-    await user.save();
-    res.json({ message: 'Password changed successfully' });
-  } catch (err) {
-    res.status(500).json({ message: 'An error occurred while changing password' });
+  const user = await User.findOne({ _id: userId }).lean();
+  if (!user) {
+    throw new Error(error.NOT_FOUND);
   }
-}
+
+  const { modifiedCount } = await User.UpdateOne({ _id: userId, role: { $neq: userRoles.admin } }, { canComment: !user.canComment }).lean();
+  if (modifiedCount === 0) {
+    throw new Error(error.CANT_CHANGE_ADMIN);
+  }
+
+  return res.json({ message: 'Privilege changed!' });
+};
+
+const changeTakeBookPriv = async (req, res) => {
+  const { id: userId } = req.body;
+
+  const user = await User.findOne({ _id: userId }).lean();
+  if (!user) {
+    throw new Error(error.NOT_FOUND);
+  }
+
+  const { modifiedCount } = await User.UpdateOne({ _id: userId, role: { $neq: userRoles.admin } }, { takeBook: !user.takeBook }).lean();
+  if (modifiedCount === 0) {
+    throw new Error(error.CANT_CHANGE_ADMIN);
+  }
+
+  return res.json({ message: 'Privilege changed!' });
+};
+
+const changePassword = async (req, res) => {
+  const { _id: userId } = req.user.id;
+  const { password } = req.body;
+  const user = await User.findOne({ _id: userId }).lean();
+  if (!user) {
+    throw new Error(error.NOT_FOUND);
+  }
+
+  const pass = await bcrypt.hash(password, 10);
+  const { modifiedCount } = await User.updateOne({ _id: userId }, { password: pass }).lena();
+  if (modifiedCount === 0) {
+    throw new Error(error.USER_UPDATE_FAIL);
+  }
+
+  return res.json({ message: 'Password changed successfully' });
+};
 
 module.exports = {
-  saveUser,
+  registerUser,
   deleteUser,
   updateUser,
   findUserById,
