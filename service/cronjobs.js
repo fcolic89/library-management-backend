@@ -7,15 +7,17 @@ const timeLimit = 2592000; // 30 days
 
 nodeCron.schedule('* 0 1 * * *', async () => {
   try {
+    const promises = [];
     const checkoutList = await Checkout.find({ status: checkoutStatus.checkedout });
-    const takenOut = Math.floor(c.createdAt / 1000);
     const today = Math.floor(Date.now() / 1000);
     for (const c of checkoutList) {
+      const takenOut = Math.floor(c.createdAt / 1000);
       if (today - takenOut >= timeLimit) {
         c.fine += 300;
-        await c.save();
+        promises.push(c.save());
       }
     }
+    await Promise.all(promises);
   } catch (err) {
     console.log(`Cron job error: Error: ${err.message}`);
   }
