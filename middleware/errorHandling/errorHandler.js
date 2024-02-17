@@ -84,6 +84,21 @@ module.exports = () => (err, req, res, next) => {
     error.message = 'Cant delete book, there are still copies that are checked out.';
     error.errorCode = 16;
     break;
+  case errorMessage.NO_COPIES_LEFT:
+    error.status = 409;
+    error.message = 'No more copies available!';
+    error.errorCode = 17;
+    break;
+  case errorMessage.CHECKOUT_OVERDUE:
+    error.status = 403;
+    error.message = 'Cannot chekout a book while an overdue book is not retured!';
+    error.errorCode = 18;
+    break;
+  case errorMessage.CHECKOUT_OR_RESERVED:
+    error.status = 403;
+    error.message = 'Book is already checked out or reserved by user!';
+    error.errorCode = 19;
+    break;
   default:
     error.status = 500;
     error.message = 'Oops, an error occurred';

@@ -15,4 +15,7 @@ module.exports = {
   CANT_CHANGE_ADMIN: 'CantChangeAdmin',
   USER_UPDATE_FAIL: 'UserUpdateFailed',
   COPIES_CHECKED_OUT: 'CopiesChekcedOut',
+  CHECKOUT_OVERDUE: 'CheckoutOverdue',
+  CHECKOUT_OR_RESERVED: 'CheckoutOrReserved',
+  NO_COPIES_LEFT: 'NoCopiesLeft',
 };
