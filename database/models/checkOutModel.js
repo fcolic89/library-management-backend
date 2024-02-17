@@ -12,7 +12,7 @@ const checkOutSchema = new Schema({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   book: { type: Schema.Types.ObjectId, ref: 'Book', required: true },
   fine: { type: Number, default: 0 },
-  status: { type: String, enum: checkoutStatus.values, default: checkoutStatus.pending },
+  status: { type: String, enum: Object.values(checkoutStatus), default: checkoutStatus.pending },
 }, { timestamps: true, optimisticConcurrency: true });
 
 const Checkout = model('Checkout', checkOutSchema);

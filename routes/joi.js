@@ -76,7 +76,6 @@ module.exports = {
   bookSchema,
   updateBookSchema,
   commentSchema,
-  replyCommentSchema,
   returnBookSchema,
   checkoutBookSchema,
   loginSchema,

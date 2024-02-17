@@ -14,7 +14,7 @@ const userSchema = new Schema({
   email: { type: String, required: true, unique: true },
   firstname: { type: String, required: true },
   lastname: { type: String, required: true },
-  role: { type: String, enum: userRoles.values, default: userRoles.regular },
+  role: { type: String, enum: Object.values(userRoles), default: userRoles.regular },
   canComment: { type: Boolean, default: true },
   takeBook: { type: Boolean, default: true },
 }, { optimisticConcurrency: true });

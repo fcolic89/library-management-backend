@@ -161,7 +161,7 @@ const findUser = async (req, res) => {
   let { role } = req.query;
   const { page = 1, size = 10 } = req.query;
 
-  if (!role) role = userRoles.values;
+  if (!role) role = Object.values(userRoles);
 
   const limit = Number(size) + 1;
   const skip = (Number(page) - 1) * Number(size);
