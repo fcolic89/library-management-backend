@@ -1,6 +1,6 @@
 const nodeCron = require('node-cron');
 const { Checkout, Book, checkoutStatus } = require('../database/models');
-const db = require('../database/db');
+const db = require('../config/db');
 
 const timeLimit = 2592000; // 30 days
 // const testTimeLiimt = 5;
@@ -26,10 +26,10 @@ nodeCron.schedule('* 0 1 * * *', async () => {
 nodeCron.schedule('* 0 1 * * *', async () => {
   try {
     const checkoutList = await Checkout.find({ status: checkoutStatus.pending });
-    const takenOut = Math.floor(c.createdAt / 1000);
     const today = Math.floor(Date.now() / 1000);
 
     for (const c of checkoutList) {
+      const takenOut = Math.floor(c.createdAt / 1000);
       if (today - takenOut >= timeLimit) {
         const session = await db.startSession();
         try {

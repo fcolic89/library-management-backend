@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const {
   User, Checkout, Comment, userRoles,
 } = require('../database/models');
-const dbConnection = require('../database/db');
+const dbConnection = require('../config/db');
 const authService = require('./auth');
 const error = require('../middleware/errorHandling/errorConstants');
 

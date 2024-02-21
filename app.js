@@ -1,5 +1,5 @@
 require('./service/cronjobs');
-require('./database/db');
+require('./config/db');
 const cors = require('cors');
 const express = require('express');
 const routeUser = require('./routes/user');
@@ -7,9 +7,9 @@ const routeAuth = require('./routes/auth');
 const routeBook = require('./routes/books');
 const routeCheckout = require('./routes/checkout');
 const errorHandler = require('./middleware/errorHandling/errorHandler');
+const { PORT } = require('./config/environment');
 
 const app = express();
-const PORT = process.env.PORT || 8080;
 
 app.use(express.json());
 app.use(cors({

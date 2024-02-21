@@ -1,8 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../database/models');
 const error = require('./errorHandling/errorConstants');
-
-const privateKey = process.env.PRIVATE_KEY || 'supersecretandsuperprivatekey';
+const { JWT_SECRET } = require('../config/environment');
 
 const authentication = (req, res, next) => {
   // Authorization: Bearer <token>
@@ -13,7 +12,7 @@ const authentication = (req, res, next) => {
   if (!token) return res.status(401).json({ message: 'Access denied. No token provided!' });
 
   try {
-    const decoded = jwt.verify(token, privateKey);
+    const decoded = jwt.verify(token, JWT_SECRET);
     req.tmp = { id: decoded.id };
     next();
   } catch (err) {

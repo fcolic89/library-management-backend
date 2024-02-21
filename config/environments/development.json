@@ -1,0 +1,7 @@
+{
+    "_MONGODB_URI": "mongodb://admin:admin@localhost:27017/library?directConnection=true&authSource=library&replicaSet=replica-set-name&retryWrites=true",
+    "MONGODB_URI": "mongodb://localhost:27017/library",
+    "JWT_SECRET": "supersecretandsuperprivatekey",
+    "PORT": 8080,
+    "NODE_ENV": "development"
+}

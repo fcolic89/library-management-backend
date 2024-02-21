@@ -1,8 +1,7 @@
 const mongoose = require('mongoose');
+const { MONGODB_URI } = require('./environment');
 
-const uri = process.env.MONGODB_URI || 'mongodb://admin:admin@localhost:27017/library?directConnection=true&authSource=library&replicaSet=replica-set-name&retryWrites=true';
-
-mongoose.connect(uri, { useUnifiedTopology: true });
+mongoose.connect(MONGODB_URI, { useUnifiedTopology: true });
 
 const con = mongoose.connection;
 con.on('error', (err) => console.error(`Could not connect to MongoDB, ${err}`));

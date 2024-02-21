@@ -3,7 +3,7 @@ const {
 } = require('../database/models');
 const error = require('../middleware/errorHandling/errorConstants');
 
-const dbConnection = require('../database/db');
+const dbConnection = require('../config/db');
 
 const checkoutBook = async (req, res, next) => {
   const {

@@ -1,6 +1,6 @@
 /* eslint-disable no-param-reassign */
 const { Book, Comment, Genre } = require('../database/models');
-const dbConnection = require('../database/db');
+const dbConnection = require('../config/db');
 const error = require('../middleware/errorHandling/errorConstants');
 
 const saveBook = async (req, res) => {
