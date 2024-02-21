@@ -6,36 +6,44 @@ const { JWT_SECRET } = require('../config/environment');
 const authentication = (req, res, next) => {
   // Authorization: Bearer <token>
   const auth = req.header('Authorization');
-  if (!auth) return res.status(401).json({ message: 'Access denied. No token provided!' });
+  if (!auth) {
+    throw new Error(error.AUTHORIZATION_TOKEN);
+  }
 
   const token = auth.split(' ')[1];
-  if (!token) return res.status(401).json({ message: 'Access denied. No token provided!' });
+  if (!token) {
+    throw new Error(error.AUTHORIZATION_TOKEN);
+  }
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.tmp = { id: decoded.id };
     next();
   } catch (err) {
-    console.log(err);
-    throw new Error(error.UNAUTHORIZED_ERROR);
+    next(err);
   }
 };
 
 const authorization = (...roles) => async (req, res, next) => {
   try {
     const user = await User.findOne({ _id: req.tmp.id }).lean();
-    if (!user) return res.status(401).json({ message: 'Access denied. User does not exist!' });
+    if (!user) {
+      throw new Error(error.NOT_FOUND);
+    }
 
-    if (!roles.includes(user.role)) return res.status(401).json({ message: 'Access denied. User does not have permission for this resource!' });
+    if (!roles.includes(user.role)) {
+      throw new Error(error.FORBIDDEN);
+    }
 
     req.user = user;
     delete req.tmp;
 
     next();
   } catch (err) {
-    throw new Error();
+    next(err);
   }
 };
+
 module.exports = {
   authentication,
   authorization,
