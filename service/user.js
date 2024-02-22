@@ -3,7 +3,7 @@ const {
   User, Checkout, Comment, userRoles,
 } = require('../database/models');
 const dbConnection = require('../config/db');
-const authService = require('./auth');
+const { generateToken } = require('../lib/misc');
 const error = require('../middleware/errorHandling/errorConstants');
 
 const registerUser = async (req, res) => {
@@ -129,7 +129,7 @@ const updateUser = async (req, res, next) => {
     await Promise.all(promises);
     await session.commitTransaction();
 
-    const token = authService.generateToken(user._id, user.username, user.role, user.canComment, user.takeBook);
+    const token = generateToken(user._id, user.username, user.role, user.canComment, user.takeBook);
     return res.json({ jwt: token });
   } catch (err) {
     await session.abortTransaction();
