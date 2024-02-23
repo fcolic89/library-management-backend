@@ -24,7 +24,12 @@ router.post('/add', [authentication, authorization(admin)], (req, res, next) => 
   next();
 }, catchAsyncError(userService.registerUser));
 
-router.delete('/:id', catchAsyncError(userService.deleteUser));
+router.delete('/:id', [authentication, authorization(admin)], (req, res, next) => {
+  if (!req.params.id) {
+    throw new Error(error.BAD_REQUEST);
+  }
+  next();
+}, catchAsyncError(userService.deleteUser));
 
 router.put('/', [authentication, authorization(admin, librarian, regular)], (req, res, next) => {
   const result = updateUserSchema.validate(req.body);
