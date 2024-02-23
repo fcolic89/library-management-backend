@@ -24,6 +24,9 @@ const registerUser = async (req, res) => {
       throw new Error(error.DUPLICATE_USERNAME);
     }
   }
+  if (role && !Object.values(userRoles).includes(role)) {
+    throw new Error(error.INVALID_VALUE);
+  }
 
   const enpass = await bcrypt.hash(password, 10);
   const user = new User({
@@ -34,10 +37,12 @@ const registerUser = async (req, res) => {
     lastname,
     isDeleted: false,
   });
-  if (role && role !== userRoles.regular) {
+  if (role) {
     user.role = role;
-    user.canComment = false;
-    user.takeBook = false;
+    if (role === userRoles.admin) {
+      user.canComment = false;
+      user.takeBook = false;
+    }
   }
   await user.save();
   return res.send({ message: 'New user saved!' });
