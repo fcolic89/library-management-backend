@@ -5,6 +5,8 @@
   "main": "app.js",
   "scripts": {
     "start": "NODE_ENV=development nodemon app.js",
+    "data-gen": "NODE_ENV=development node ./scripts/mongo/database-script.js --drop --gen",
+    "data-drop": "NODE_ENV=development node ./scripts/mongo/database-script.js --drop",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -29,7 +31,9 @@
     "node-cron": "^3.0.2"
   },
   "devDependencies": {
+    "@faker-js/faker": "^8.4.1",
     "eslint-config-airbnb-base": "^15.0.0",
+    "lodash": "^4.17.21",
     "nodemon": "^3.0.3"
   }
 }

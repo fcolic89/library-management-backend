@@ -10,8 +10,6 @@ sleep 5
 
 /usr/bin/mongosh mongodb://127.0.0.1:27017/library --file mongo-replSet-init.js
 
-/usr/bin/mongosh mongodb://127.0.0.1:27017/library?replicaSet=$replica_set_name --file init-data.js
-
 cat << EOF >> /etc/bash.bashrc
 connect(){
   local host="mongodb://localhost:27017/library?replicaSet=$replica_set_name"
