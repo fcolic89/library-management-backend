@@ -106,24 +106,24 @@ const generateData = async () => {
       if (i < 5) {
         promises.push(new Comment({
           bookId: book._id,
-          author: commenters[i].username,
-          ratring: 3,
+          author: commenters[i]._id,
+          rating: 3,
           edited: false,
           comment: faker.lorem.sentence(),
         }).save());
       } else if (i < 7) {
         promises.push(new Comment({
           bookId: book._id,
-          author: commenters[i].username,
-          ratring: 4,
+          author: commenters[i]._id,
+          rating: 4,
           edited: false,
           comment: faker.lorem.sentence(),
         }).save());
       } else if (i < 9) {
         promises.push(new Comment({
           bookId: book._id,
-          author: commenters[i].username,
-          ratring: 5,
+          author: commenters[i]._id,
+          rating: 5,
           edited: false,
           comment: faker.lorem.sentence(),
         }).save());
