@@ -72,12 +72,6 @@ const deleteUser = async (req, res, next) => {
     promises.push(User.deleteOne({ _id: userId }, { session }).lean());
     promises.push(Checkout.deleteMany({ userId }, { session }));
 
-    const comments = await Comment.find({ author: user.username });
-    for (const c of comments) {
-      c.author = '[deleted]';
-      promises.push(c.save({ session }));
-    }
-
     await Promise.all(promises);
     await session.commitTransaction();
 
@@ -90,7 +84,7 @@ const deleteUser = async (req, res, next) => {
   }
 };
 
-const updateUser = async (req, res, next) => {
+const updateUser = async (req, res) => {
   const { id: userId } = req.user;
   const {
     username, firstname, lastname, email,
@@ -116,36 +110,12 @@ const updateUser = async (req, res, next) => {
     }
   }
 
-  const usernameChange = username !== user.username;
+  await User.updateOne({ _id: userId }, {
+    username, email, firstname, lastname,
+  });
 
-  const session = await dbConnection.startSession();
-  try {
-    const promises = [];
-    session.startTransaction();
-
-    if (usernameChange) {
-      const comments = await Comment.find({ author: user.username });
-      for (const c of comments) {
-        c.author = user.username;
-        promises.push(c.save({ session }));
-      }
-    }
-
-    promises.push(User.updateOne({ _id: userId }, {
-      username, email, firstname, lastname,
-    }, { session }));
-
-    await Promise.all(promises);
-    await session.commitTransaction();
-
-    const token = generateToken(user._id, user.username, user.role, user.canComment, user.takeBook);
-    return res.json({ jwt: token });
-  } catch (err) {
-    await session.abortTransaction();
-    next(err);
-  } finally {
-    session.endSession();
-  }
+  const token = generateToken(user._id, user.username, user.role, user.canComment, user.takeBook);
+  return res.json({ jwt: token });
 };
 
 const findUserById = async (req, res) => {

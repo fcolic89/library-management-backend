@@ -47,7 +47,7 @@ const deleteBook = async (req, res, next) => {
 
     await Promise.all([
       Book.deleteOne({ _id: bookId }, { session }),
-      Comment.deleteMany({ bookId }),
+      Comment.deleteMany({ bookId }, { session }),
     ]);
 
     await session.commitTransaction();
@@ -155,7 +155,7 @@ const filterBooks = async (req, res) => {
 
 const addComment = async (req, res, next) => {
   const { bookId } = req.params;
-  const { username } = req.user;
+  const { _id: userId } = req.user;
   const { comment, rating } = req.body;
 
   if (!isValidId(bookId)) {
@@ -171,7 +171,7 @@ const addComment = async (req, res, next) => {
   try {
     const bookComment = new Comment({
       bookId,
-      author: username,
+      author: userId,
       comment,
       rating,
     });
@@ -227,6 +227,7 @@ const findComments = async (req, res) => {
   const comments = await Comment.find({ bookId })
     .limit(limit)
     .skip(skip)
+    .populate('author', 'username')
     .lean();
 
   let hasNext = false;
