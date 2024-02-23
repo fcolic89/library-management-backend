@@ -1,6 +1,7 @@
 const {
   Book, Checkout, User, checkoutStatus,
 } = require('../database/models');
+const { isValidId } = require('../lib/misc');
 const error = require('../middleware/errorHandling/errorConstants');
 
 const dbConnection = require('../config/db');
@@ -9,6 +10,10 @@ const checkoutBook = async (req, res, next) => {
   const {
     bookId, userId, checkoutId,
   } = req.body;
+
+  if (!isValidId(bookId) || !isValidId(userId) || !isValidId(checkoutId)) {
+    throw new Error(error.INVALID_VALUE);
+  }
 
   const promises = [
     Book.findOne({ _id: bookId }),
@@ -82,6 +87,10 @@ const checkoutBook = async (req, res, next) => {
 const returnBook = async (req, res, next) => {
   const { userId, bookId } = req.body;
 
+  if (!isValidId(bookId) || !isValidId(userId)) {
+    throw new Error(error.INVALID_VALUE);
+  }
+
   const checkout = await Checkout.findOne({ user: userId, book: bookId, status: checkoutStatus.checkedout });
   if (!checkout) {
     throw new Error(error.NOT_FOUND);
@@ -115,6 +124,10 @@ const returnBook = async (req, res, next) => {
 const reserveBook = async (req, res, next) => {
   const { bookId } = req.body;
   const promises = [];
+
+  if (!isValidId(bookId)) {
+    throw new Error(error.INVALID_VALUE);
+  }
 
   promises.push(Book.findOne({ _id: bookId }));
   promises.push(Checkout.findOne({
@@ -301,6 +314,10 @@ const userCheckouts = async (req, res) => {
 const bookCheckouts = async (req, res) => {
   const { status, page = 1, size = 10 } = req.query;
   const { bookId } = req.params;
+
+  if (!isValidId(bookId)) {
+    throw new Error(error.INVALID_VALUE);
+  }
 
   const limit = Number(size) + 1;
   const skip = (Number(page) - 1) * Number(size);

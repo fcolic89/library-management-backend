@@ -1,6 +1,7 @@
 /* eslint-disable no-param-reassign */
 const { Book, Comment, Genre } = require('../database/models');
 const dbConnection = require('../config/db');
+const { isValidId } = require('../lib/misc');
 const error = require('../middleware/errorHandling/errorConstants');
 
 const saveBook = async (req, res) => {
@@ -29,6 +30,10 @@ const saveBook = async (req, res) => {
 
 const deleteBook = async (req, res, next) => {
   const { id: bookId } = req.params;
+
+  if (!isValidId(bookId)) {
+    throw new Error(error.INVALID_VALUE);
+  }
 
   const book = await Book.findOne({ _id: bookId }).lean();
   if (!book) {
@@ -61,6 +66,10 @@ const updateBook = async (req, res) => {
     _id: bookId, title, description, pageCount, author, dateOfPublishing, quantityMax, imageUrl, genre,
   } = req.body;
 
+  if (!isValidId(bookId)) {
+    throw new Error(error.INVALID_VALUE);
+  }
+
   if (isNaN(new Date(dateOfPublishing))) {
     throw new Error(error.INVALID_VALUE);
   }
@@ -78,6 +87,10 @@ const updateBook = async (req, res) => {
 
 const findBookById = async (req, res) => {
   const { id: bookId } = req.params;
+
+  if (!isValidId(bookId)) {
+    throw new Error(error.INVALID_VALUE);
+  }
 
   const book = await Book.findOne({ _id: bookId }).lean();
   if (!book) {
@@ -145,6 +158,10 @@ const addComment = async (req, res, next) => {
   const { username } = req.user;
   const { comment, rating } = req.body;
 
+  if (!isValidId(bookId)) {
+    throw new Error(error.INVALID_VALUE);
+  }
+
   const book = await Book.findOne({ _id: bookId });
   if (!book) {
     throw new Error(error.NOT_FOUND);
@@ -195,6 +212,10 @@ const editComment = async (req, res) => {
 const findComments = async (req, res) => {
   const { page = 1, size = 10 } = req.query;
   const { bookId } = req.params;
+
+  if (!isValidId(bookId)) {
+    throw new Error(error.INVALID_VALUE);
+  }
 
   const limit = Number(size) + 1;
   const skip = (Number(page) - 1) * Number(size);

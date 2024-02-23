@@ -3,7 +3,7 @@ const {
   User, Checkout, Comment, userRoles,
 } = require('../database/models');
 const dbConnection = require('../config/db');
-const { generateToken } = require('../lib/misc');
+const { generateToken, isValidId } = require('../lib/misc');
 const error = require('../middleware/errorHandling/errorConstants');
 
 const registerUser = async (req, res) => {
@@ -45,6 +45,10 @@ const registerUser = async (req, res) => {
 
 const deleteUser = async (req, res, next) => {
   const { id: userId } = req.params;
+
+  if (!isValidId(userId)) {
+    throw new Error(error.INVALID_VALUE);
+  }
 
   const user = await User.findOne({ _id: userId }).lean();
   if (!user) {
@@ -140,7 +144,12 @@ const updateUser = async (req, res, next) => {
 };
 
 const findUserById = async (req, res) => {
-  const { id: userId } = req.params.id;
+  const { id: userId } = req.params;
+
+  if (!isValidId(userId)) {
+    throw new Error(error.INVALID_VALUE);
+  }
+
   const user = await User.findOne({ _id: userId }).lean();
   if (!user) {
     throw new Error(error.NOT_FOUND);
@@ -260,7 +269,7 @@ const changeTakeBookPriv = async (req, res) => {
 };
 
 const changePassword = async (req, res) => {
-  const { _id: userId } = req.user.id;
+  const { _id: userId } = req.user;
   const { password } = req.body;
   const user = await User.findOne({ _id: userId }).lean();
   if (!user) {
