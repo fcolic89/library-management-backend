@@ -1,4 +1,5 @@
 /* eslint-disable no-param-reassign */
+const mongoose = require('mongoose');
 const { Book, Comment, Genre } = require('../database/models');
 const dbConnection = require('../config/db');
 const { isValidId } = require('../lib/misc');
@@ -92,14 +93,26 @@ const findBookById = async (req, res) => {
     throw new Error(error.INVALID_VALUE);
   }
 
-  const book = await Book.findOne({ _id: bookId }).lean();
+  const [book, rating] = await Promise.all([
+    Book.findOne({ _id: bookId }).lean(),
+    Comment.aggregate([
+      { $match: { bookId } },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+          ratingSum: { $sum: '$rating' },
+        },
+      },
+    ]),
+  ]);
+
   if (!book) {
     throw new Error(error.NOT_FOUND);
   }
 
-  if (book.rating.ratingCount !== 0) {
-    const rating = book.rating.ratingSum / book.rating.ratingCount;
-    book.rating = rating;
+  if (rating[0].count !== 0) {
+    book.rating = rating[0].ratingSum / rating[0].ratingCount;
   } else {
     book.rating = 0;
   }
@@ -138,12 +151,31 @@ const filterBooks = async (req, res) => {
     books.splice(books.length - 1, 1);
   }
 
-  books.forEach((book) => {
-    if (book.rating.ratingCount !== 0) {
-      const rating = book.rating.ratingSum / book.rating.ratingCount;
-      book.rating = rating;
+  const bookIndexMap = {};
+  books.forEach((book, index) => {
+    bookIndexMap[book._id] = index;
+  });
+
+  const bookRatings = await Comment.aggregate([
+    {
+      $match: {
+        bookId: { $in: Object.keys(bookIndexMap).map((id) => new mongoose.Types.ObjectId(id)) },
+      },
+    },
+    {
+      $group: {
+        _id: '$bookId',
+        count: { $sum: 1 },
+        ratingSum: { $sum: '$rating' },
+      },
+    },
+  ]);
+
+  bookRatings.forEach((bookRating) => {
+    if (bookRating.count !== 0) {
+      books[bookIndexMap[bookRating._id]].rating = bookRating.ratingSum / bookRating.count;
     } else {
-      book.rating = 0;
+      books[bookIndexMap[bookRating._id]].rating = 0;
     }
   });
 
@@ -153,7 +185,7 @@ const filterBooks = async (req, res) => {
   });
 };
 
-const addComment = async (req, res, next) => {
+const addComment = async (req, res) => {
   const { bookId } = req.params;
   const { _id: userId } = req.user;
   const { comment, rating } = req.body;
@@ -167,34 +199,14 @@ const addComment = async (req, res, next) => {
     throw new Error(error.NOT_FOUND);
   }
 
-  const session = await dbConnection.startSession();
-  try {
-    const bookComment = new Comment({
-      bookId,
-      author: userId,
-      comment,
-      rating,
-    });
+  new Comment({
+    bookId,
+    author: userId,
+    comment,
+    rating,
+  }).save();
 
-    session.startTransaction();
-
-    book.rating.ratingSum += comment.rating;
-    book.rating.ratingCount++;
-
-    await Promise.all([
-      bookComment.save({ session }),
-      book.save({ session }),
-    ]);
-
-    await session.commitTransaction();
-
-    return res.json({ messsage: 'Comment added' });
-  } catch (err) {
-    await session.abortTransaction();
-    next(err);
-  } finally {
-    session.endSession();
-  }
+  return res.json({ messsage: 'Comment added' });
 };
 
 const editComment = async (req, res) => {

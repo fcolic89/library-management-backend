@@ -90,10 +90,6 @@ const generateData = async () => {
       imageUrl: faker.image.url(),
       description: faker.lorem.paragraph(),
       genre: _.sampleSize(genreList, 3),
-      rating: {
-        ratingSum: 38,
-        ratingCount: 10,
-      },
     }).save());
   }
 
