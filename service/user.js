@@ -85,7 +85,7 @@ const deleteUser = async (req, res, next) => {
 };
 
 const updateUser = async (req, res) => {
-  const { id: userId } = req.user;
+  const { _id: userId } = req.user;
   const {
     username, firstname, lastname, email,
   } = req.body;
@@ -97,7 +97,7 @@ const updateUser = async (req, res) => {
         { username },
         { email },
       ],
-      _id: { $neq: userId },
+      _id: { $nin: [userId] },
     }).lean(),
   ]);
   if (!user) {
@@ -146,6 +146,7 @@ const findUser = async (req, res) => {
   const { page = 1, size = 10 } = req.query;
 
   if (!role) role = Object.values(userRoles);
+  else role = role.trim().split(',');
 
   const limit = Number(size) + 1;
   const skip = (Number(page) - 1) * Number(size);
@@ -219,7 +220,7 @@ const changeCommentPriv = async (req, res) => {
     throw new Error(error.NOT_FOUND);
   }
 
-  const { modifiedCount } = await User.UpdateOne({ _id: userId, role: { $neq: userRoles.admin } }, { canComment: !user.canComment }).lean();
+  const { modifiedCount } = await User.updateOne({ _id: userId, role: { $nin: [userRoles.admin] } }, { canComment: !user.canComment }).lean();
   if (modifiedCount === 0) {
     throw new Error(error.CANT_CHANGE_ADMIN);
   }
@@ -235,7 +236,7 @@ const changeTakeBookPriv = async (req, res) => {
     throw new Error(error.NOT_FOUND);
   }
 
-  const { modifiedCount } = await User.UpdateOne({ _id: userId, role: { $neq: userRoles.admin } }, { takeBook: !user.takeBook }).lean();
+  const { modifiedCount } = await User.updateOne({ _id: userId, role: { $nin: [userRoles.admin] } }, { takeBook: !user.takeBook }).lean();
   if (modifiedCount === 0) {
     throw new Error(error.CANT_CHANGE_ADMIN);
   }

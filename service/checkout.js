@@ -14,6 +14,12 @@ const checkoutBook = async (req, res, next) => {
   if (!isValidId(bookId) || !isValidId(userId) || !isValidId(checkoutId)) {
     throw new Error(error.INVALID_VALUE);
   }
+  const user = User.findOne({ _id: userId }).lean();
+  if (!user) {
+    throw new Error(error.NOT_FOUND);
+  } else if (!user.takeBook) {
+    throw new Error(error.CANT_TAKE_OUT);
+  }
 
   const promises = [
     Book.findOne({ _id: bookId }),
@@ -22,7 +28,7 @@ const checkoutBook = async (req, res, next) => {
       book: bookId,
       $or: [
         { status: checkoutStatus.checkedout },
-        { status: checkoutStatus.pending, _id: { $neq: checkoutId } },
+        { status: checkoutStatus.pending, _id: { $nin: [checkoutId] } },
       ],
     }).lean(),
     Checkout.findOne({
@@ -125,18 +131,22 @@ const reserveBook = async (req, res, next) => {
   const { bookId } = req.body;
   const promises = [];
 
+  if (!req.user.takeBook) {
+    throw new Error(error.CANT_TAKE_OUT);
+  }
+
   if (!isValidId(bookId)) {
     throw new Error(error.INVALID_VALUE);
   }
 
   promises.push(Book.findOne({ _id: bookId }));
   promises.push(Checkout.findOne({
-    user: req.user.id,
+    user: req.user._id,
     book: req.body.bookId,
     status: { $in: [checkoutStatus.pending, checkoutStatus.checkedout] },
   }).lean());
   promises.push(Checkout.findOne({
-    user: req.user.id,
+    user: req.user._id,
     fine: { $gt: 0 },
     status: checkoutStatus.checkedout,
   }).lean());
@@ -157,7 +167,7 @@ const reserveBook = async (req, res, next) => {
   const session = await dbConnection.startSession();
   try {
     const checkout = new Checkout({
-      user: req.user.id,
+      user: req.user._id,
       book: req.body.bookId,
     });
 
@@ -204,7 +214,8 @@ const findCheckouts = async (req, res) => {
     .skip(skip)
     .populate('user', 'username')
     .populate('book', 'title')
-    .select(['_id', 'user', 'book', 'fine', 'createdAt', 'status']);
+    .select(['_id', 'user', 'book', 'fine', 'createdAt', 'status'])
+    .lean();
 
   let hasNext = false;
   if (checkouts.length === limit) {
@@ -332,7 +343,7 @@ const bookCheckouts = async (req, res) => {
   }
 
   const checkoutFilter = {};
-  checkoutFilter.user = bookId._id;
+  checkoutFilter.book = bookId;
 
   if (status) {
     if (!Object.values(checkoutStatus).includes(status)) {
@@ -393,9 +404,9 @@ const myCheckouts = async (req, res) => {
   }
 
   if (fined === 'true') {
-    checkoutFilter.fined = { $gt: 0 };
+    checkoutFilter.fine = { $gt: 0 };
   } else if (fined === 'false') {
-    checkoutFilter.fined = { $eq: 0 };
+    checkoutFilter.fine = { $eq: 0 };
   } else if (fined) {
     throw new Error(error.INVALID_VALUE);
   }

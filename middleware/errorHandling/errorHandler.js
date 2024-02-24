@@ -99,6 +99,16 @@ module.exports = () => (err, req, res, next) => {
     error.message = 'Book is already checked out or reserved by user!';
     error.errorCode = 19;
     break;
+  case errorMessage.CANT_TAKE_OUT:
+    error.status = 403;
+    error.message = 'Cant take out book, you dont have the required privilege!';
+    error.errorCode = 20;
+    break;
+  case errorMessage.CANT_COMMENT:
+    error.status = 403;
+    error.message = 'Cant post comment, you dont have the required privilege!';
+    error.errorCode = 21;
+    break;
   default:
     error.status = 500;
     error.message = 'Oops, an error occurred';

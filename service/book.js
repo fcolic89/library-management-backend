@@ -75,8 +75,22 @@ const updateBook = async (req, res) => {
     throw new Error(error.INVALID_VALUE);
   }
 
-  const book = await Book.findOneAndUpdate({ _id: bookId }, {
-    title, description, pageCount, author, dateOfPublishing, quantityMax, imageUrl, genre,
+  const book = await Book.findOne({ _id: bookId }).lean();
+  if (!book) {
+    throw new Error(error.NOT_FOUND);
+  }
+  let { quantityCurrent } = book;
+  if (quantityMax > book.quantityMax) {
+    quantityCurrent += quantityMax - book.quantityMax;
+  } else if (quantityMax < book.quantityMax) {
+    quantityCurrent -= book.quantityMax - quantityMax;
+    if (quantityCurrent < 0) {
+      quantityCurrent = 0;
+    }
+  }
+
+  await Book.updateOne({ _id: bookId }, {
+    title, description, pageCount, author, dateOfPublishing, quantityMax, quantityCurrent, imageUrl, genre,
   }).lean();
 
   if (!book) {
@@ -96,7 +110,7 @@ const findBookById = async (req, res) => {
   const [book, rating] = await Promise.all([
     Book.findOne({ _id: bookId }).lean(),
     Comment.aggregate([
-      { $match: { bookId } },
+      { $match: { bookId: new mongoose.Types.ObjectId(bookId) } },
       {
         $group: {
           _id: null,
@@ -110,9 +124,8 @@ const findBookById = async (req, res) => {
   if (!book) {
     throw new Error(error.NOT_FOUND);
   }
-
-  if (rating[0].count !== 0) {
-    book.rating = rating[0].ratingSum / rating[0].ratingCount;
+  if (rating[0] && rating[0].count !== 0) {
+    book.rating = rating[0].ratingSum / rating[0].count;
   } else {
     book.rating = 0;
   }
@@ -187,8 +200,12 @@ const filterBooks = async (req, res) => {
 
 const addComment = async (req, res) => {
   const { bookId } = req.params;
-  const { _id: userId } = req.user;
+  const { _id: userId, canComment } = req.user;
   const { comment, rating } = req.body;
+
+  if (!canComment) {
+    throw new Error(error.CANT_COMMENT);
+  }
 
   if (!isValidId(bookId)) {
     throw new Error(error.INVALID_VALUE);

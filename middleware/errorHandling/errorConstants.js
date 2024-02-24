@@ -18,4 +18,6 @@ module.exports = {
   CHECKOUT_OVERDUE: 'CheckoutOverdue',
   CHECKOUT_OR_RESERVED: 'CheckoutOrReserved',
   NO_COPIES_LEFT: 'NoCopiesLeft',
+  CANT_TAKE_OUT: 'CantTakeOut',
+  CANT_COMMENT: 'CantComment',
 };
