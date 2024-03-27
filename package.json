@@ -5,6 +5,7 @@
   "main": "app.js",
   "scripts": {
     "start": "NODE_ENV=development nodemon app.js",
+    "start-prod": "NODE_ENV=production node app.js",
     "data-gen": "NODE_ENV=development node ./scripts/mongo/database-script.js --drop --gen",
     "data-drop": "NODE_ENV=development node ./scripts/mongo/database-script.js --drop",
     "test": "echo \"Error: no test specified\" && exit 1"

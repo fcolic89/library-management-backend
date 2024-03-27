@@ -1,0 +1,6 @@
+{
+  "MONGODB_URI": "mongodb://localhost:27017/library?replicaSet=r0",
+  "JWT_SECRET": "supersecretandsuperprivatekey",
+  "PORT": 8080,
+  "NODE_ENV": "production"
+}
