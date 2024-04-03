@@ -24,7 +24,7 @@ const addUser = async (req, res) => {
       throw new Error(error.DUPLICATE_USERNAME);
     }
   }
-  if (!Object.values(userRoles).includes(role)) {
+  if (role && !Object.values(userRoles).includes(role)) {
     throw new Error(error.INVALID_VALUE);
   }
 
