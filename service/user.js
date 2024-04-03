@@ -2,7 +2,6 @@ const bcrypt = require('bcrypt');
 const {
   User, Checkout, userRoles,
 } = require('../database/models');
-const dbConnection = require('../config/db');
 const { generateToken, isValidId } = require('../lib/misc');
 const error = require('../middleware/errorHandling/errorConstants');
 
@@ -35,7 +34,6 @@ const addUser = async (req, res) => {
     email,
     firstname,
     lastname,
-    isDeleted: false,
   });
   if (role) {
     user.role = role;
@@ -74,14 +72,13 @@ const registerUser = async (req, res) => {
     email,
     firstname,
     lastname,
-    isDeleted: false,
   });
 
   await user.save();
   return res.send({ message: 'New user saved!' });
 };
 
-const deleteUser = async (req, res, next) => {
+const deleteUser = async (req, res) => {
   const { id: userId } = req.params;
 
   if (!isValidId(userId)) {
@@ -97,24 +94,10 @@ const deleteUser = async (req, res, next) => {
   if (checkouts) {
     throw new Error(error.DELETE_USER_UNRETURNED);
   }
-  const session = await dbConnection.startSession();
-  try {
-    const promises = [];
-    session.startTransaction();
 
-    promises.push(User.deleteOne({ _id: userId }, { session }).lean());
-    promises.push(Checkout.deleteMany({ userId }, { session }));
+  User.deleteOne({ _id: userId }).lean();
 
-    await Promise.all(promises);
-    await session.commitTransaction();
-
-    return res.json({ message: 'User deleted!' });
-  } catch (err) {
-    await session.abortTransaction();
-    next(err);
-  } finally {
-    session.endSession();
-  }
+  return res.json({ message: 'User deleted!' });
 };
 
 const updateUser = async (req, res) => {
