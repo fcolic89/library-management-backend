@@ -1,4 +1,5 @@
 const Joi = require('joi');
+const { userRoles } = require('../database/models');
 
 const registerSchema = Joi.object({
   username: Joi.string().min(3).required(),
@@ -6,7 +7,7 @@ const registerSchema = Joi.object({
   email: Joi.string().required(),
   firstname: Joi.string().required(),
   lastname: Joi.string().required(),
-  role: Joi.string(),
+  role: Joi.string().optional().valid(userRoles.admin, userRoles.librarian, userRoles.regular),
 });
 
 const updateUserSchema = Joi.object({

@@ -22,7 +22,7 @@ router.post('/add', [authentication, authorization(admin)], (req, res, next) => 
     throw new Error(error.BAD_REQUEST);
   }
   next();
-}, catchAsyncError(userService.registerUser));
+}, catchAsyncError(userService.addUser));
 
 router.delete('/:id', [authentication, authorization(admin)], (req, res, next) => {
   if (!req.params.id) {

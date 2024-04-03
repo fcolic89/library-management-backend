@@ -1,12 +1,12 @@
 const bcrypt = require('bcrypt');
 const {
-  User, Checkout, Comment, userRoles,
+  User, Checkout, userRoles,
 } = require('../database/models');
 const dbConnection = require('../config/db');
 const { generateToken, isValidId } = require('../lib/misc');
 const error = require('../middleware/errorHandling/errorConstants');
 
-const registerUser = async (req, res) => {
+const addUser = async (req, res) => {
   const {
     username, password, email, firstname, lastname, role,
   } = req.body;
@@ -24,7 +24,7 @@ const registerUser = async (req, res) => {
       throw new Error(error.DUPLICATE_USERNAME);
     }
   }
-  if (role && !Object.values(userRoles).includes(role)) {
+  if (!Object.values(userRoles).includes(role)) {
     throw new Error(error.INVALID_VALUE);
   }
 
@@ -44,6 +44,39 @@ const registerUser = async (req, res) => {
       user.takeBook = false;
     }
   }
+  await user.save();
+  return res.send({ message: 'New user saved!' });
+};
+
+const registerUser = async (req, res) => {
+  const {
+    username, password, email, firstname, lastname,
+  } = req.body;
+
+  const dbUser = await User.findOne({
+    $or: [
+      { email },
+      { username },
+    ],
+  }).lean();
+  if (dbUser) {
+    if (dbUser.email === email) {
+      throw new Error(error.DUPLICATE_EMAIL);
+    } else {
+      throw new Error(error.DUPLICATE_USERNAME);
+    }
+  }
+
+  const enpass = await bcrypt.hash(password, 10);
+  const user = new User({
+    username,
+    password: enpass,
+    email,
+    firstname,
+    lastname,
+    isDeleted: false,
+  });
+
   await user.save();
   return res.send({ message: 'New user saved!' });
 };
@@ -263,6 +296,7 @@ const changePassword = async (req, res) => {
 
 module.exports = {
   registerUser,
+  addUser,
   deleteUser,
   updateUser,
   findUserById,
