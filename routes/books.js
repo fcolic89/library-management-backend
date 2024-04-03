@@ -7,7 +7,7 @@ const { authentication, authorization } = require('../middleware/auth');
 const error = require('../middleware/errorHandling/errorConstants');
 const { catchAsyncError } = require('../middleware/errorHandling/functionErrorHandler');
 const {
-  bookSchema, updateBookSchema, commentSchema, replyCommentSchema,
+  bookSchema, updateBookSchema, commentSchema,
 } = require('./joi');
 
 router.post('/', [authentication, authorization(librarian)], (req, res, next) => {
@@ -20,9 +20,9 @@ router.post('/', [authentication, authorization(librarian)], (req, res, next) =>
 
 router.delete('/:id', [authentication, authorization(librarian)], catchAsyncError(bookService.deleteBook));
 
-router.get('/find/:id', catchAsyncError(bookService.findBookById));
+router.get('/find/:id', [authentication, authorization(regular, librarian)], catchAsyncError(bookService.findBookById));
 
-router.get('/filter', catchAsyncError(bookService.filterBooks));
+router.get('/filter', [authentication, authorization(regular, librarian)], catchAsyncError(bookService.filterBooks));
 
 router.put('/', [authentication, authorization(librarian)], (req, res, next) => {
   const { error: validationError } = updateBookSchema.validate(req.body);
