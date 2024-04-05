@@ -23,9 +23,6 @@ const addUser = async (req, res) => {
       throw new Error(error.DUPLICATE_USERNAME);
     }
   }
-  if (role && !Object.values(userRoles).includes(role)) {
-    throw new Error(error.INVALID_VALUE);
-  }
 
   const enpass = await bcrypt.hash(password, 10);
   const user = new User({
@@ -156,7 +153,7 @@ const findUserById = async (req, res) => {
 
 const findUser = async (req, res) => {
   const {
-    username, email, firstname, lastname, canComment, takeBook,
+    username, email, firstname, lastname,
   } = req.query;
   let { role } = req.query;
   const { page = 1, size = 10 } = req.query;
@@ -178,24 +175,6 @@ const findUser = async (req, res) => {
     lastname: new RegExp(lastname, 'i'),
     role: { $in: role },
   };
-  if (canComment) {
-    if (canComment === 'true') {
-      userFilter.canComment = true;
-    } else if (canComment === 'false') {
-      userFilter.canComment = false;
-    } else {
-      throw new Error(error.INVALID_VALUE);
-    }
-  }
-  if (takeBook) {
-    if (takeBook === 'true') {
-      userFilter.takeBook = true;
-    } else if (takeBook === 'false') {
-      userFilter.takeBook = false;
-    } else {
-      throw new Error(error.INVALID_VALUE);
-    }
-  }
 
   const userList = await User.find(userFilter)
     .limit(limit)
@@ -205,7 +184,7 @@ const findUser = async (req, res) => {
   let hasNext = false;
   if (userList.length === limit) {
     hasNext = true;
-    userList.splice(userList.length - 1, 1);
+    userList.pop();
   }
 
   return res.send({
