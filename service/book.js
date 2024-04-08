@@ -125,7 +125,7 @@ const findBookById = async (req, res) => {
     throw new Error(error.NOT_FOUND);
   }
   if (rating[0] && rating[0].count !== 0) {
-    book.rating = rating[0].ratingSum / rating[0].count;
+    book.rating = Number((rating[0].ratingSum / rating[0].count).toFixed(2));
   } else {
     book.rating = 0;
   }
@@ -167,6 +167,7 @@ const filterBooks = async (req, res) => {
   const bookIndexMap = {};
   books.forEach((book, index) => {
     bookIndexMap[book._id] = index;
+    book.rating = 0;
   });
 
   const bookRatings = await Comment.aggregate([
@@ -185,11 +186,7 @@ const filterBooks = async (req, res) => {
   ]);
 
   bookRatings.forEach((bookRating) => {
-    if (bookRating.count !== 0) {
-      books[bookIndexMap[bookRating._id]].rating = bookRating.ratingSum / bookRating.count;
-    } else {
-      books[bookIndexMap[bookRating._id]].rating = 0;
-    }
+    books[bookIndexMap[bookRating._id]].rating = Number((bookRating.ratingSum / bookRating.count).toFixed(2));
   });
 
   return res.send({

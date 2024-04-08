@@ -20,9 +20,9 @@ router.post('/', [authentication, authorization(librarian)], (req, res, next) =>
 
 router.delete('/:id', [authentication, authorization(librarian)], catchAsyncError(bookService.deleteBook));
 
-router.get('/find/:id', [authentication, authorization(regular, librarian)], catchAsyncError(bookService.findBookById));
+router.get('/find/:id', catchAsyncError(bookService.findBookById));
 
-router.get('/filter', [authentication, authorization(regular, librarian)], catchAsyncError(bookService.filterBooks));
+router.get('/filter', catchAsyncError(bookService.filterBooks));
 
 router.put('/', [authentication, authorization(librarian)], (req, res, next) => {
   const { error: validationError } = updateBookSchema.validate(req.body);
@@ -48,9 +48,9 @@ router.put('/comment/:commentId', [authentication, authorization(librarian, regu
   next();
 }, catchAsyncError(bookService.editComment));
 
-router.get('/comment/:bookId', [authentication, authorization(librarian, regular)], catchAsyncError(bookService.findComments));
+router.get('/comment/:bookId', catchAsyncError(bookService.findComments));
 
-router.get('/genre', [authentication, authorization(librarian, regular)], catchAsyncError(bookService.getGenre));
+router.get('/genre', [authentication, authorization(librarian)], catchAsyncError(bookService.getGenre));
 
 router.post('/genre', [authentication, authorization(librarian)], (req, res, next) => {
   if (!req.body.name) {
