@@ -11,10 +11,10 @@ const checkoutBook = async (req, res, next) => {
     bookId, userId, checkoutId,
   } = req.body;
 
-  if (!isValidId(bookId) || !isValidId(userId) || !isValidId(checkoutId)) {
+  if (!isValidId(bookId) || !isValidId(userId) || (checkoutId && !isValidId(checkoutId))) {
     throw new Error(error.INVALID_VALUE);
   }
-  const user = User.findOne({ _id: userId }).lean();
+  const user = await User.findOne({ _id: userId }).lean();
   if (!user) {
     throw new Error(error.NOT_FOUND);
   } else if (!user.takeBook) {

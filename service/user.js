@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const {
   User, Checkout, userRoles,
+  checkoutStatus,
 } = require('../database/models');
 const { generateToken, isValidId } = require('../lib/misc');
 const error = require('../middleware/errorHandling/errorConstants');
@@ -87,12 +88,12 @@ const deleteUser = async (req, res) => {
     throw new Error(error.NOT_FOUND);
   }
 
-  const checkouts = await Checkout.findOne({ userId, returned: false }).lean();
+  const checkouts = await Checkout.findOne({ user: userId, status: { $in: [checkoutStatus.pending, checkoutStatus.checkedout] } }).lean();
   if (checkouts) {
     throw new Error(error.DELETE_USER_UNRETURNED);
   }
 
-  User.deleteOne({ _id: userId }).lean();
+  await User.deleteOne({ _id: userId }).lean();
 
   return res.json({ message: 'User deleted!' });
 };
@@ -138,7 +139,7 @@ const findUserById = async (req, res) => {
     throw new Error(error.INVALID_VALUE);
   }
 
-  const user = await User.findOne({ _id: userId }).lean();
+  const user = await User.findOne({ _id: userId }, { password: 0 }).lean();
   if (!user) {
     throw new Error(error.NOT_FOUND);
   }
@@ -176,7 +177,7 @@ const findUser = async (req, res) => {
     role: { $in: role },
   };
 
-  const userList = await User.find(userFilter)
+  const userList = await User.find(userFilter, { password: 0 })
     .limit(limit)
     .skip(skip)
     .sort({ username: 1 });
@@ -213,12 +214,11 @@ const changeCommentPriv = async (req, res) => {
   const user = await User.findOne({ _id: userId }).lean();
   if (!user) {
     throw new Error(error.NOT_FOUND);
-  }
-
-  const { modifiedCount } = await User.updateOne({ _id: userId, role: { $nin: [userRoles.admin] } }, { canComment: !user.canComment }).lean();
-  if (modifiedCount === 0) {
+  } else if (user.role === userRoles.admin) {
     throw new Error(error.CANT_CHANGE_ADMIN);
   }
+
+  await User.updateOne({ _id: userId }, { canComment: !user.canComment }).lean();
 
   return res.json({ message: 'Privilege changed!' });
 };
@@ -229,12 +229,11 @@ const changeTakeBookPriv = async (req, res) => {
   const user = await User.findOne({ _id: userId }).lean();
   if (!user) {
     throw new Error(error.NOT_FOUND);
-  }
-
-  const { modifiedCount } = await User.updateOne({ _id: userId, role: { $nin: [userRoles.admin] } }, { takeBook: !user.takeBook }).lean();
-  if (modifiedCount === 0) {
+  } else if (user.role === userRoles.admin) {
     throw new Error(error.CANT_CHANGE_ADMIN);
   }
+
+  await User.updateOne({ _id: userId }, { takeBook: !user.takeBook }).lean();
 
   return res.json({ message: 'Privilege changed!' });
 };
