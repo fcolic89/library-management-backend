@@ -68,6 +68,7 @@ const generateData = async () => {
     'Fiction',
     'Fantasy',
     'Adventure',
+    'Crime',
     'Mystery',
   ];
 
@@ -92,6 +93,18 @@ const generateData = async () => {
       genre: _.sampleSize(genreList, 3),
     }).save());
   }
+
+  bookPromises.push(new Book({
+    title: 'Crime and Punishment',
+    author: 'Fyodor Dostoyevvsky',
+    pageCount: 671,
+    dateOfPublishing: new Date('1886-01-01'),
+    quantityMax: 15,
+    quantityCurrent: 15,
+    imageUrl: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1382846449i/7144.jpg',
+    description: 'Raskolnikov, a destitute and desperate former student, wanders through the slums of St Petersburg and commits a random murder without remorse or regret. He imagines himself to be a great man, a Napoleon: acting for a higher purpose beyond conventional moral law. But as he embarks on a dangerous game of cat and mouse with a suspicious police investigator, Raskolnikov is pursued by the growing voice of his conscience and finds the noose of his own guilt tightening around his neck. Only Sonya, a downtrodden sex worker, can offer the chance of redemption.',
+    genre: ['Fiction', 'Classic', 'Crime'],
+  }).save());
 
   const [users, books] = await Promise.all([Promise.all(userPromises), Promise.all(bookPromises)]);
 
