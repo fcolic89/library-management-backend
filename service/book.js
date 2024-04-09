@@ -208,19 +208,25 @@ const addComment = async (req, res) => {
     throw new Error(error.INVALID_VALUE);
   }
 
-  const book = await Book.findOne({ _id: bookId });
+  const [book, prevComment] = await Promise.all([
+    Book.findOne({ _id: bookId }).lean(),
+    Comment.findOne({ author: userId, bookId }).lean(),
+  ]);
+
   if (!book) {
     throw new Error(error.NOT_FOUND);
+  } else if (prevComment) {
+    throw new Error(error.COMMENT_EXISTS);
   }
 
-  new Comment({
+  await new Comment({
     bookId,
     author: userId,
     comment,
     rating,
   }).save();
 
-  return res.json({ messsage: 'Comment added' });
+  return res.json({ message: 'Comment added' });
 };
 
 const editComment = async (req, res) => {

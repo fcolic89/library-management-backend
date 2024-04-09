@@ -20,4 +20,5 @@ module.exports = {
   NO_COPIES_LEFT: 'NoCopiesLeft',
   CANT_TAKE_OUT: 'CantTakeOut',
   CANT_COMMENT: 'CantComment',
+  COMMENT_EXISTS: 'CommentExists',
 };

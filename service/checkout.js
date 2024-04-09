@@ -142,33 +142,39 @@ const reserveBook = async (req, res, next) => {
   promises.push(Book.findOne({ _id: bookId }));
   promises.push(Checkout.findOne({
     user: req.user._id,
-    book: req.body.bookId,
-    status: { $in: [checkoutStatus.pending, checkoutStatus.checkedout] },
+    $or: [
+      {
+        book: bookId,
+        status: { $in: [checkoutStatus.pending, checkoutStatus.checkedout] },
+      },
+      {
+        fine: { $gt: 0 },
+        status: checkoutStatus.checkedout,
+      },
+    ],
   }).lean());
-  promises.push(Checkout.findOne({
-    user: req.user._id,
-    fine: { $gt: 0 },
-    status: checkoutStatus.checkedout,
-  }).lean());
-  const [book, existingCheckout, fined] = await Promise.all(promises);
+  const [book, existingCheckout] = await Promise.all(promises);
 
   if (!book) {
     throw new Error(error.NotFound);
-  } if (book.quantityCurrent === 0) {
+  }
+  if (book.quantityCurrent === 0) {
     throw new Error(error.NO_COPIES_LEFT);
   }
   if (existingCheckout) {
-    throw new Error(error.CHECKOUT_OR_RESERVED);
-  }
-  if (fined) {
-    throw new Error(error.CHECKOUT_OVERDUE);
+    console.log(existingCheckout.bookId);
+    if (existingCheckout.book.valueOf() === bookId) {
+      throw new Error(error.CHECKOUT_OR_RESERVED);
+    } else {
+      throw new Error(error.CHECKOUT_OVERDUE);
+    }
   }
 
   const session = await dbConnection.startSession();
   try {
     const checkout = new Checkout({
       user: req.user._id,
-      book: req.body.bookId,
+      book: bookId,
     });
 
     book.quantityCurrent -= 1;
@@ -307,7 +313,7 @@ const userCheckouts = async (req, res) => {
     .populate('user', 'username')
     .populate('book', 'title')
     .select(['_id', 'user', 'book', 'fine', 'createdAt', 'status'])
-    .sort({ createdAt: 1 })
+    .sort({ createdAt: -1 })
     .lean();
 
   let hasNext = false;
@@ -359,7 +365,7 @@ const bookCheckouts = async (req, res) => {
     .populate('user', 'username')
     .populate('book', 'title')
     .select(['_id', 'user', 'book', 'fine', 'createdAt', 'status'])
-    .sort({ createdAt: 1 })
+    .sort({ createdAt: -1 })
     .lean();
 
   let hasNext = false;
@@ -378,7 +384,6 @@ const myCheckouts = async (req, res) => {
   const {
     status, fined, page = 1, size = 10,
   } = req.query;
-  const { username } = req.user;
 
   const limit = Number(size) + 1;
   const skip = (Number(page) - 1) * Number(size);
@@ -387,13 +392,8 @@ const myCheckouts = async (req, res) => {
     throw new Error(error.INVALID_VALUE);
   }
 
-  const user = await User.findOne({ username }).lean();
-  if (!user) {
-    throw new Error(error.NOT_FOUND);
-  }
-
   const checkoutFilter = {};
-  checkoutFilter.user = user._id;
+  checkoutFilter.user = req.user._id;
 
   if (status) {
     if (!Object.values(checkoutStatus).includes(status)) {
@@ -414,10 +414,9 @@ const myCheckouts = async (req, res) => {
   const checkouts = await Checkout.find(checkoutFilter)
     .limit(limit)
     .skip(skip)
-    .populate('user', 'username')
     .populate('book', 'title')
-    .select(['_id', 'user', 'book', 'fine', 'createdAt', 'status'])
-    .sort({ createdAt: 1 })
+    .select(['_id', 'book', 'fine', 'createdAt', 'status'])
+    .sort({ createdAt: -1 })
     .lean();
 
   let hasNext = false;

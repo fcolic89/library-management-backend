@@ -109,6 +109,11 @@ module.exports = () => (err, req, res, next) => {
     error.message = 'Cant post comment, you dont have the required privilege!';
     error.errorCode = 21;
     break;
+  case errorMessage.COMMENT_EXISTS:
+    error.status = 400;
+    error.message = 'Cant post comment, you have already posted one comment!';
+    error.errorCode = 22;
+    break;
   default:
     error.status = 500;
     error.message = 'Oops, an error occurred';
