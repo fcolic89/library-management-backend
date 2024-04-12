@@ -62,7 +62,6 @@ const checkoutBookSchema = Joi.object({
   checkoutId: Joi.string().allow(null).optional(),
   userId: Joi.string().required(),
   bookId: Joi.string().required(),
-  reserved: Joi.bool().allow(null).optional(),
 });
 
 const loginSchema = Joi.object({

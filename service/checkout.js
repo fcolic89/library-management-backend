@@ -54,9 +54,8 @@ const checkoutBook = async (req, res, next) => {
     const checkout = await Checkout.findOneAndUpdate(
       { _id: checkoutId, status: checkoutStatus.pending },
       { status: checkoutStatus.checkedout },
-    )
-      .lean();
-    if (!checkout) {
+    );
+    if (!checkout.isModified) {
       throw new Error(error.NOT_FOUND);
     }
 
@@ -97,14 +96,22 @@ const returnBook = async (req, res, next) => {
     throw new Error(error.INVALID_VALUE);
   }
 
-  const checkout = await Checkout.findOne({ user: userId, book: bookId, status: checkoutStatus.checkedout });
+  const [checkout, book] = await Promise.all([
+    Checkout.findOne({ user: userId, book: bookId, status: checkoutStatus.checkedout }),
+    Book.findOne({ _id: bookId }),
+  ]);
   if (!checkout) {
     throw new Error(error.NOT_FOUND);
-  }
-  const book = await Book.findOne({ _id: checkout.book });
-  if (!book) {
+  } else if (!book) {
     throw new Error(error.NOT_FOUND);
   }
+
+  if (book.quantityCurrent === book.quantityMax) {
+    checkout.status = checkoutStatus.returned;
+    await checkout.save();
+    return res.json({ message: 'Book returned!' });
+  }
+
   const session = await dbConnection.startSession();
   try {
     session.startTransaction();
@@ -197,7 +204,9 @@ const reserveBook = async (req, res, next) => {
 };
 
 const findCheckouts = async (req, res) => {
-  const { status, page = 1, size = 10 } = req.query;
+  const {
+    fined, status, page = 1, size = 10,
+  } = req.query;
 
   const limit = Number(size) + 1;
   const skip = (Number(page) - 1) * Number(size);
@@ -214,12 +223,22 @@ const findCheckouts = async (req, res) => {
       checkoutFilter.status = status;
     }
   }
+
+  if (fined === 'true') {
+    checkoutFilter.fine = { $gt: 0 };
+  } else if (fined === 'false') {
+    checkoutFilter.fine = { $eq: 0 };
+  } else if (fined) {
+    throw new Error(error.INVALID_VALUE);
+  }
+
   const checkouts = await Checkout.find(checkoutFilter)
     .limit(limit)
     .skip(skip)
     .populate('user', 'username')
     .populate('book', 'title')
-    .select(['_id', 'user', 'book', 'fine', 'createdAt', 'status'])
+    .select(['_id', 'user', 'book', 'fine', 'updatedAt', 'status'])
+    .sort({ updatedAt: -1 })
     .lean();
 
   let hasNext = false;
@@ -414,7 +433,7 @@ const myCheckouts = async (req, res) => {
     .limit(limit)
     .skip(skip)
     .populate('book', 'title')
-    .select(['_id', 'book', 'fine', 'createdAt', 'status'])
+    .select(['_id', 'book', 'fine', 'updatedAt', 'status'])
     .sort({ createdAt: -1 })
     .lean();
 

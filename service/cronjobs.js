@@ -13,7 +13,7 @@ nodeCron.schedule('* 0 1 * * *', async () => {
     const checkoutList = await Checkout.find({ status: checkoutStatus.checkedout });
     const today = Math.floor(Date.now() / 1000);
     for (const c of checkoutList) {
-      const takenOut = Math.floor(c.createdAt / 1000);
+      const takenOut = Math.floor(c.updatedAt / 1000);
       if (today - takenOut >= timeLimit) {
         c.fine += 300;
         promises.push(c.save());
