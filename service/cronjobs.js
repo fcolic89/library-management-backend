@@ -33,9 +33,12 @@ nodeCron.schedule('* 0 1 * * *', async () => {
     for (const c of checkoutList) {
       const takenOut = Math.floor(c.createdAt / 1000);
       if (today - takenOut >= timeLimit2) {
+        const book = await Book.findOne({ _id: c.book });
+        if (book.quantityMax === book.quantityCurrent) {
+          continue;
+        }
         const session = await db.startSession();
         try {
-          const book = await Book.findOne({ _id: c.book });
           book.quantityCurrent++;
 
           session.startTransaction();

@@ -39,7 +39,7 @@ router.put('/', [authentication, authorization(admin, librarian, regular)], (req
   next();
 }, catchAsyncError(userService.updateUser));
 
-router.get('/find', [authentication, authorization(admin)], catchAsyncError(userService.findUser));
+router.get('/find', [authentication, authorization(admin, librarian)], catchAsyncError(userService.findUser));
 
 router.get('/findRegular', [authentication, authorization(librarian)], (req, res, next) => {
   req.query.role = 'REGULAR,';

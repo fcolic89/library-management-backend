@@ -8,7 +8,15 @@ const bookSchema = new Schema({
   dateOfPublishing: { type: Date, required: true },
   pageCount: { type: Number, required: true },
   quantityMax: { type: Number, required: true },
-  quantityCurrent: { type: Number, required: true },
+  quantityCurrent: {
+    type: Number,
+    required: true,
+    validate: {
+      validator(v) {
+        return v >= 0;
+      },
+    },
+  },
   imageUrl: { type: String },
   description: { type: String, required: true },
   genre: [{ type: String }],

@@ -81,7 +81,7 @@ module.exports = () => (err, req, res, next) => {
     break;
   case errorMessage.COPIES_CHECKED_OUT:
     error.status = 400;
-    error.message = 'Cant delete book, there are still copies that are checked out.';
+    error.message = 'Cant delete book, there are still copies that are checked out or reserved.';
     error.errorCode = 16;
     break;
   case errorMessage.NO_COPIES_LEFT:

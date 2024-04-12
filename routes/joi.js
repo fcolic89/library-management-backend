@@ -1,4 +1,4 @@
-const Joi = require('joi');
+const Joi = require('joi').extend(require('@joi/date'));
 const { userRoles } = require('../database/models');
 
 const registerSchema = Joi.object({
@@ -26,11 +26,11 @@ const bookSchema = Joi.object({
   title: Joi.string().min(3).required(),
   description: Joi.string().min(3).required(),
   author: Joi.string().required(),
-  dateOfPublishing: Joi.string().required(),
-  pageCount: Joi.number().required(),
+  dateOfPublishing: Joi.date().format('YYYY-MM-DD').required(),
+  pageCount: Joi.number().positive().required(),
   rating: Joi.number().allow(null, '').optional(),
-  quantityMax: Joi.number().required(),
-  quantityCurrent: Joi.number().allow(null, 0).optional(),
+  quantityMax: Joi.number().positive().allow(0).required(),
+  quantityCurrent: Joi.number().positive().allow(null, 0).optional(),
   genre: Joi.array().required(),
   imageUrl: Joi.string().allow(null, '').optional(),
 });
@@ -40,10 +40,10 @@ const updateBookSchema = Joi.object({
   title: Joi.string().min(3).required(),
   description: Joi.string().min(3).required(),
   author: Joi.string().required(),
-  dateOfPublishing: Joi.string().required(),
-  pageCount: Joi.number().required(),
-  quantityMax: Joi.number().required(),
-  quantityCurrent: Joi.number().allow(null, 0).optional(),
+  dateOfPublishing: Joi.date().format('YYYY-MM-DD').required(),
+  pageCount: Joi.number().positive().required(),
+  quantityMax: Joi.number().positive().allow(0).required(),
+  quantityCurrent: Joi.number().positive().allow(null, 0).optional(),
   genre: Joi.array().required(),
   imageUrl: Joi.string().allow(null, '').optional(),
   rating: Joi.number().allow(null, '').optional(),

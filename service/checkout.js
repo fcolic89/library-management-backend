@@ -162,7 +162,6 @@ const reserveBook = async (req, res, next) => {
     throw new Error(error.NO_COPIES_LEFT);
   }
   if (existingCheckout) {
-    console.log(existingCheckout.bookId);
     if (existingCheckout.book.valueOf() === bookId) {
       throw new Error(error.CHECKOUT_OR_RESERVED);
     } else {

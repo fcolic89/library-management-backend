@@ -1,18 +1,16 @@
 /* eslint-disable no-param-reassign */
 const mongoose = require('mongoose');
-const { Book, Comment, Genre } = require('../database/models');
+const {
+  Book, Checkout, Comment, Genre, checkoutStatus,
+} = require('../database/models');
 const dbConnection = require('../config/db');
 const { isValidId } = require('../lib/misc');
 const error = require('../middleware/errorHandling/errorConstants');
 
 const saveBook = async (req, res) => {
   const {
-    title, author, dateOfPublishing, pageCount, quantityMax, quantityCurrent, imageUrl, description, genre,
+    title, author, dateOfPublishing, pageCount, quantityMax, imageUrl, description, genre,
   } = req.body;
-
-  if (isNaN(new Date(dateOfPublishing))) {
-    throw new Error(error.INVALID_VALUE);
-  }
 
   await new Book({
     title,
@@ -20,7 +18,7 @@ const saveBook = async (req, res) => {
     dateOfPublishing,
     pageCount,
     quantityMax,
-    quantityCurrent,
+    quantityCurrent: quantityMax,
     imageUrl,
     description,
     genre,
@@ -36,12 +34,19 @@ const deleteBook = async (req, res, next) => {
     throw new Error(error.INVALID_VALUE);
   }
 
-  const book = await Book.findOne({ _id: bookId }).lean();
+  const [book, checkouts] = await Promise.all([
+    Book.findOne({ _id: bookId }).lean(),
+    Checkout.findOne({
+      book: bookId,
+      status: { $in: [checkoutStatus.pending, checkoutStatus.checkedout] },
+    }).lean(),
+  ]);
   if (!book) {
     throw new Error(error.NOT_FOUND);
-  } else if (book.quantityMax !== book.quantityCurrent) {
+  } else if (checkouts) {
     throw new Error(error.COPIES_CHECKED_OUT);
   }
+
   const session = await dbConnection.startSession();
   try {
     session.startTransaction();
@@ -71,29 +76,24 @@ const updateBook = async (req, res) => {
     throw new Error(error.INVALID_VALUE);
   }
 
-  if (isNaN(new Date(dateOfPublishing))) {
-    throw new Error(error.INVALID_VALUE);
-  }
-
   const book = await Book.findOne({ _id: bookId }).lean();
   if (!book) {
     throw new Error(error.NOT_FOUND);
   }
-  let { quantityCurrent } = book;
   if (quantityMax > book.quantityMax) {
-    quantityCurrent += quantityMax - book.quantityMax;
+    book.quantityCurrent += quantityMax - book.quantityMax;
   } else if (quantityMax < book.quantityMax) {
-    quantityCurrent -= book.quantityMax - quantityMax;
-    if (quantityCurrent < 0) {
-      quantityCurrent = 0;
+    book.quantityCurrent -= book.quantityMax - quantityMax;
+    if (book.quantityCurrent < 0) {
+      book.quantityCurrent = 0;
     }
   }
 
-  await Book.updateOne({ _id: bookId }, {
-    title, description, pageCount, author, dateOfPublishing, quantityMax, quantityCurrent, imageUrl, genre,
+  const updatedBook = await Book.updateOne({ _id: bookId }, {
+    title, description, pageCount, author, dateOfPublishing, quantityMax, quantityCurrent: book.quantityCurrent, imageUrl, genre,
   }).lean();
 
-  if (!book) {
+  if (!updatedBook) {
     throw new Error(error.NOT_FOUND);
   }
 
