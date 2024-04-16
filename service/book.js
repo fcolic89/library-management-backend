@@ -319,12 +319,11 @@ const deleteGenre = async (req, res, next) => {
     session.startTransaction();
 
     promises.push(Genre.deleteOne({ name }, { session }));
-
-    const books = await Book.find({ genre: { $in: [req.params.name] } });
-    books.forEach((book) => {
-      book.genre.splice(book.genre.indexOf(name), 1);
-      promises.push(book.save({ session }));
-    });
+    promises.push(Book.updateMany({
+      genre: { $in: [name] },
+    }, {
+      $pull: { genre: name },
+    }, { session }));
 
     const [deleteResult] = await Promise.all(promises);
     if (deleteResult.deletedCount === 0) {

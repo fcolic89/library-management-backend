@@ -7,6 +7,7 @@ const timeLimit = 2592000; // 30 days
 const timeLimit2 = 604800; // 7 days
 // const testTimeLiimt = 5;
 
+// fining cron job
 nodeCron.schedule('* 0 1 * * *', async () => {
   try {
     const promises = [];
@@ -25,6 +26,7 @@ nodeCron.schedule('* 0 1 * * *', async () => {
   }
 });
 
+// pending checkout removal cron job
 nodeCron.schedule('* 0 1 * * *', async () => {
   try {
     const checkoutList = await Checkout.find({ status: checkoutStatus.pending });
@@ -32,9 +34,11 @@ nodeCron.schedule('* 0 1 * * *', async () => {
 
     for (const c of checkoutList) {
       const takenOut = Math.floor(c.createdAt / 1000);
+      // timeLimit2 = 604800 -- 7 days
       if (today - takenOut >= timeLimit2) {
         const book = await Book.findOne({ _id: c.book });
         if (book.quantityMax === book.quantityCurrent) {
+          await c.deleteOne();
           continue;
         }
         const session = await db.startSession();

@@ -104,19 +104,15 @@ const updateUser = async (req, res) => {
     username, firstname, lastname, email,
   } = req.body;
 
-  const [user, sameUser] = await Promise.all([
-    User.findOne({ _id: userId }).lean(),
-    User.findOne({
-      $or: [
-        { username },
-        { email },
-      ],
-      _id: { $nin: [userId] },
-    }).lean(),
-  ]);
-  if (!user) {
-    throw new Error(error.NOT_FOUND);
-  } else if (sameUser) {
+  const sameUser = await User.findOne({
+    $or: [
+      { username },
+      { email },
+    ],
+    _id: { $nin: [userId] },
+  }).lean();
+
+  if (sameUser) {
     if (sameUser.email === email) {
       throw new Error(error.DUPLICATE_EMAIL);
     } else {
@@ -124,9 +120,9 @@ const updateUser = async (req, res) => {
     }
   }
 
-  await User.updateOne({ _id: userId }, {
+  const user = await User.findOneAndUpdate({ _id: userId }, {
     username, email, firstname, lastname,
-  });
+  }, { new: true }).lean();
 
   const token = generateToken(user._id, user.username, user.role, user.canComment, user.takeBook);
   return res.json({ jwt: token });
@@ -241,16 +237,9 @@ const changeTakeBookPriv = async (req, res) => {
 const changePassword = async (req, res) => {
   const { _id: userId } = req.user;
   const { password } = req.body;
-  const user = await User.findOne({ _id: userId }).lean();
-  if (!user) {
-    throw new Error(error.NOT_FOUND);
-  }
 
   const pass = await bcrypt.hash(password, 10);
-  const { modifiedCount } = await User.updateOne({ _id: userId }, { password: pass }).lena();
-  if (modifiedCount === 0) {
-    throw new Error(error.USER_UPDATE_FAIL);
-  }
+  await User.updateOne({ _id: userId }, { password: pass }).lean();
 
   return res.json({ message: 'Password changed successfully' });
 };
